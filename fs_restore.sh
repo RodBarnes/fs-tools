@@ -9,161 +9,162 @@ function printx {
 }
 
 # Check for --include-active flag
-INCLUDE_ACTIVE=false
+include_active=false
 if [[ $# -gt 0 && "$1" == "--include-active" ]]; then
-  INCLUDE_ACTIVE=true
+  include_active=true
   shift
 fi
 
-DISK=${1:-}
-BACKUP_DIR=${2:-}
-if [[ -z "$DISK" || -z "$BACKUP_DIR" ]]; then
+target_disk=${1:-}
+backup_dir=${2:-}
+if [[ -z "$target_disk" || -z "$backup_dir" ]]; then
   echo "Restore a backup created by fs_backup"
   echo "Syntax: $0 [--include-active] <target_disk> <backup_dir>"
-  echo "Where:  <target_disk> is the disk to whicih the restore should be applied."
+  echo "Where:  [--include-active] is an option to direct restoring to partitions that are active; i.e., online."
+  echo "        <target_disk> is the disk to whicih the restore should be applied."
   echo "        <backup_dir> is the full path to the directory containing the backup files."
   exit
 fi
 
-if [[ ! -b "$DISK" ]]; then
-  echo "Error: $DISK not a block device."
+if [[ ! -b "$target_disk" ]]; then
+  printx "Error: $target_disk not a block device."
   exit 2
 fi
 
-if [[ ! -d "$BACKUP_DIR" ]]; then
-  echo "Error: $BACKUP_DIR not a directory."
+if [[ ! -d "$backup_dir" ]]; then
+  printx "Error: $backup_dir not a directory."
   exit 2
 fi
 
 # Check for partition table backup
-if [[ ! -f "$BACKUP_DIR/pt-type" ]]; then
-  echo "Error: $BACKUP_DIR/pt-type not found."
+if [[ ! -f "$backup_dir/pt-type" ]]; then
+  printx "Error: $backup_dir/pt-type not found."
   exit 3
 fi
 
-PT_TYPE=$(cat "$BACKUP_DIR/pt-type")
-if [[ "$PT_TYPE" != "gpt" && "$PT_TYPE" != "dos" ]]; then
-  echo "Error: Invalid partition table type in $BACKUP_DIR/pt-type: $PT_TYPE"
+pt_type=$(cat "$backup_dir/pt-type")
+if [[ "$pt_type" != "gpt" && "$pt_type" != "dos" ]]; then
+  printx "Error: Invalid partition table type in $backup_dir/pt-type: $pt_type"
   exit 3
 fi
 
 # Find available .fsa files
-FSA_FILES=($(ls -1 "$BACKUP_DIR"/*.fsa 2>/dev/null))
-if [[ ${#FSA_FILES[@]} -eq 0 ]]; then
-  echo "Error: No .fsa files found in $BACKUP_DIR"
+fsa_files=($(ls -1 "$backup_dir"/*.fsa 2>/dev/null))
+if [[ ${#fsa_files[@]} -eq 0 ]]; then
+  printx "Error: No .fsa files found in $backup_dir"
   exit 3
 fi
 
 # Get the active root partition
-ROOT_PART=$(findmnt -n -o SOURCE /)
+root_part=$(findmnt -n -o SOURCE /)
 
 # Filter .fsa files, excluding the active partition unless --include-active is used
-PARTS=()
-MENU_ITEMS=()
-for i in "${!FSA_FILES[@]}"; do
-  FSA=${FSA_FILES[i]}
-  PART=$(basename "$FSA" .fsa)
-  PART_DEV="/dev/$PART"
-  if [[ "$PART_DEV" == "$ROOT_PART" && "$INCLUDE_ACTIVE" == "false" ]]; then
-    echo "Note: Skipping $PART (active root partition; use --include-active to restore)"
+partitions=()
+menu_items=()
+for i in "${!fsa_files[@]}"; do
+  fsa_file=${fsa_files[i]}
+  partition=$(basename "$fsa_file" .fsa)
+  partition_device="/dev/$partition"
+  if [[ "$partition_device" == "$root_part" && "$include_active" == "false" ]]; then
+    echo "Note: Skipping $partition (active root partition; use --include-active to restore)"
   else
-    PARTS+=("$PART")
-    MENU_ITEMS+=("$((i+1))" "$PART" "ON")
+    partitions+=("$partition")
+    menu_items+=("$((i+1))" "$partition" "ON")
   fi
 done
 
-if [[ ${#PARTS[@]} -eq 0 ]]; then
-  echo "Error: No valid partitions available for restoration"
+if [[ ${#partitions[@]} -eq 0 ]]; then
+  printx "Error: No valid partitions available for restoration"
   exit 3
 fi
 
 # Interactive selection with forced TERM
 export TERM=xterm
-SELECTION=$(whiptail --title "Select Partitions to Restore" --checklist "Choose one or more:" 15 60 ${#PARTS[@]} \
-  "${MENU_ITEMS[@]}" 3>&1 1>&2 2>&3)
+selection=$(whiptail --title "Select Partitions to Restore" --checklist "Choose one or more:" 15 60 ${#partitions[@]} \
+  "${menu_items[@]}" 3>&1 1>&2 2>&3)
 if [[ $? -ne 0 ]]; then
   echo "Cancelled: No restoration performed"
   exit
 fi
 
 # Convert selected tags (indices) to partition names
-IFS=' ' read -ra SELECTED_TAGS <<< "$SELECTION"
-SELECTED=()
-for tag in "${SELECTED_TAGS[@]}"; do
+IFS=' ' read -ra selected_tags <<< "$selection"
+selected=()
+for tag in "${selected_tags[@]}"; do
   tag_clean=${tag//\"/}
   if [[ $tag_clean =~ ^[0-9]+$ ]]; then
     index=$((tag_clean-1))
-    if [[ $index -ge 0 && $index -lt ${#PARTS[@]} ]]; then
-      SELECTED+=("${PARTS[index]}")
+    if [[ $index -ge 0 && $index -lt ${#partitions[@]} ]]; then
+      selected+=("${partitions[index]}")
     else
-      echo "Warning: Invalid tag '$tag_clean' ignored"
+      printx "Warning: Invalid tag '$tag_clean' ignored"
     fi
   else
-    echo "Warning: Non-numeric tag '$tag_clean' ignored"
+    printx "Warning: Non-numeric tag '$tag_clean' ignored"
   fi
 done
 
-if [[ ${#SELECTED[@]} -eq 0 ]]; then
-  echo "Error: No valid partitions selected"
+if [[ ${#selected[@]} -eq 0 ]]; then
+  printx "Error: No valid partitions selected"
   exit
 fi
 
 # Restore partition table
-echo "Restoring partition table to $DISK ..."
-if [[ "$PT_TYPE" == "gpt" ]]; then
-  if [[ ! -f "$BACKUP_DIR/disk-pt.gpt" ]]; then
-    echo "Error: $BACKUP_DIR/disk-pt.gpt not found."
+echo "Restoring partition table to $target_disk ..."
+if [[ "$pt_type" == "gpt" ]]; then
+  if [[ ! -f "$backup_dir/disk-pt.gpt" ]]; then
+    printx "Error: $backup_dir/disk-pt.gpt not found."
     exit 1
   fi
-  sgdisk --load-backup="$BACKUP_DIR/disk-pt.gpt" "$DISK"
-elif [[ "$PT_TYPE" == "dos" ]]; then
-  if [[ ! -f "$BACKUP_DIR/disk-pt.sf" ]]; then
-    echo "Error: $BACKUP_DIR/disk-pt.sf not found."
+  sgdisk --load-backup="$backup_dir/disk-pt.gpt" "$target_disk"
+elif [[ "$pt_type" == "dos" ]]; then
+  if [[ ! -f "$backup_dir/disk-pt.sf" ]]; then
+    printx "Error: $backup_dir/disk-pt.sf not found."
     exit 1
   fi
-  sfdisk "$DISK" < "$BACKUP_DIR/disk-pt.sf"
+  sfdisk "$target_disk" < "$backup_dir/disk-pt.sf"
 fi
 echo "Partition table restoration complete."
 
 # Inform kernel of partition table changes
-partprobe "$DISK"
+partprobe "$target_disk"
 
 # Restore selected filesystems
-for part in "${SELECTED[@]}"; do
-  PART_DEV="/dev/$part"
-  FSA="$BACKUP_DIR/$part.fsa"
-  if [[ ! -f "$FSA" ]]; then
-    echo "Error: $FSA not found, skipping $PART_DEV"
+for part in "${selected[@]}"; do
+  partition_device="/dev/$part"
+  fsa_file="$backup_dir/$part.fsa"
+  if [[ ! -f "$fsa_file" ]]; then
+    printx "Error: $fsa_file not found, skipping $partition_device"
     continue
   fi
-  if [[ ! -b "$PART_DEV" ]]; then
-    echo "Error: $PART_DEV not a block device, skipping"
+  if [[ ! -b "$partition_device" ]]; then
+    printx "Error: $partition_device not a block device, skipping"
     continue
   fi
   # Check if partition is mounted
-  MOUNT_POINT=$(awk -v part="$PART_DEV" '$1 == part {print $2}' /proc/mounts)
-  if [[ -n "$MOUNT_POINT" ]]; then
-    echo "Error: $PART_DEV is mounted at $MOUNT_POINT."
+  mount_point=$(awk -v part="$partition_device" '$1 == part {print $2}' /proc/mounts)
+  if [[ -n "$mount_point" ]]; then
+    printx "Error: $partition_device is mounted at $mount_point."
     read -p "Proceed and unmount it first? [y/N] " response
     if [[ "$response" =~ ^[yY]$ ]]; then
-      if ! umount "$MOUNT_POINT"; then
-        echo "Error: Failed to unmount $MOUNT_POINT, skipping $PART_DEV"
+      if ! umount "$mount_point"; then
+        printx "Error: Failed to unmount $mount_point, skipping $partition_device"
         continue
       fi
     else
-      echo "Skipping restoration of $PART_DEV"
+      printx "Skipping restoration of $partition_device"
       continue
     fi
   fi
-  if [[ "$PART_DEV" == "$ROOT_PART" ]]; then
-    echo "Warning: Restoring active root partition $PART_DEV may cause system instability"
+  if [[ "$partition_device" == "$root_part" ]]; then
+    printx "Warning: Restoring active root partition $partition_device may cause system instability"
   fi
-  echo "Restoring $FSA -> $PART_DEV"
-  if ! fsarchiver restfs "$FSA" id=0,dest="$PART_DEV"; then
-    echo "Error: Failed to restore $PART_DEV"
+  echo "Restoring $fsa_file -> $partition_device"
+  if ! fsarchiver restfs "$fsa_file" id=0,dest="$partition_device"; then
+    printx "Error: Failed to restore $partition_device"
     continue
   fi
 done
 
-echo "✅ Restoration complete: $DISK"
-lsblk -f "$DISK"
+echo "✅ Restoration complete: $target_disk"
+lsblk -f "$target_disk"
