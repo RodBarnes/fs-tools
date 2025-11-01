@@ -11,16 +11,7 @@ function printx {
   printf "${YELLOW}$1${NOCOLOR}\n"
 }
 
-# Check for --include-active flag
-include_active=false
-if [[ $# -gt 0 && "$1" == "--include-active" ]]; then
-  include_active=true
-  shift
-fi
-
-source_disk=${1:-}
-backup_dir=${2:-}
-if [[ -z "$source_disk" || -z "$backup_dir" ]]; then
+function show_syntax {
   echo "Create a backup of selected partitions using fsarchiver."
   echo "Syntax: $0 [--include-active] <source_disk> <backup_dir>"
   echo "Where:  [--include-active] is an option to force inclusion of partitions that are active; i.e., online."
@@ -34,8 +25,7 @@ if [[ ! -b "$source_disk" ]]; then
   exit 2
 fi
 
-# Backup partition table function
-backup_pt() {
+function backup_partition() {
   local disk=$1 imgdir=$2
   if fdisk -l "$disk" 2>/dev/null | grep -q '^Disklabel type: gpt'; then
     sgdisk --backup="$imgdir/disk-pt.gpt" "$disk"
@@ -46,6 +36,28 @@ backup_pt() {
   fi
   echo "Saved partition table to $imgdir/"
 }
+
+function parse_arguments {
+  # Check for --include-active flag
+  include_active=false
+  if [[ $# -gt 0 && "$1" == "--include-active" ]]; then
+    include_active=true
+    shift
+  fi
+
+  source_disk=${1:-}
+  backup_dir=${2:-}
+}
+
+parse_arguments
+if [[ -z "$source_disk" || -z "$backup_dir" ]]; then
+  show_syntax
+fi
+
+if [[ ! -b "$source_disk" ]]; then
+  printx "Error: $source_disk not a block device."
+  exit 2
+fi
 
 # Get the active root partition
 root_part=$(findmnt -n -o SOURCE /)
@@ -111,7 +123,7 @@ fi
 # Create backup directory and save partition table only after selection
 imgdir="$backup_dir/$(date +%Y%m%d_%H%M%S)_$(hostname -s)"
 mkdir -p "$imgdir"
-backup_pt "$source_disk" "$imgdir"
+backup_partition "$source_disk" "$imgdir"
 
 echo "Backing up selected partitions to $imgdir/ ..."
 

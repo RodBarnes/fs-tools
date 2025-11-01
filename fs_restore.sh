@@ -8,22 +8,30 @@ function printx {
   printf "${YELLOW}$1${NOCOLOR}\n"
 }
 
-# Check for --include-active flag
-include_active=false
-if [[ $# -gt 0 && "$1" == "--include-active" ]]; then
-  include_active=true
-  shift
-fi
-
-target_disk=${1:-}
-backup_dir=${2:-}
-if [[ -z "$target_disk" || -z "$backup_dir" ]]; then
+function show_syntax {
   echo "Restore a backup created by fs_backup"
   echo "Syntax: $0 [--include-active] <target_disk> <backup_dir>"
   echo "Where:  [--include-active] is an option to direct restoring to partitions that are active; i.e., online."
   echo "        <target_disk> is the disk to whicih the restore should be applied."
   echo "        <backup_dir> is the full path to the directory containing the backup files."
   exit
+}
+
+function parse_arguments {
+  # Check for --include-active flag
+  include_active=false
+  if [[ $# -gt 0 && "$1" == "--include-active" ]]; then
+    include_active=true
+    shift
+  fi
+
+  target_disk=${1:-}
+  backup_dir=${2:-}
+}
+
+parse_arguments
+if [[ -z "$target_disk" || -z "$backup_dir" ]]; then
+  show_syntax
 fi
 
 if [[ ! -b "$target_disk" ]]; then
