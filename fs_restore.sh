@@ -61,12 +61,9 @@ function select_archive () {
     archives+=("${LINE}")
   done < <( ls -1 "$backuppath/fs" )
 
-  echo "Got the directories"
-
   # Get the count of options
   count="${#archives[@]}"
 
-  if true; then  
     # Increment count to include the cancel
     ((count++))
 
@@ -87,9 +84,6 @@ function select_archive () {
         printx "Invalid selection. Please enter a number between 1 and $count."
       fi
     done
-  else
-    archivepath="<empty>"
-  fi
 }
 
 function restore_partition_table {
@@ -114,7 +108,7 @@ function restore_partition_table {
   partprobe "$targetdisk"
 }
 
-function restore_partition {
+function restore_filesystem {
   partition_device="/dev/$part"
   fsa_file="$archivepath/$part.fsa"
   if [[ ! -f "$fsa_file" ]]; then
@@ -192,7 +186,7 @@ mount_backup_device
 if [ -z $archivepath ]; then
   select_archive
 fi
-echo "archivepath=$archivepath"
+
 if [[ ! -d "$archivepath" ]]; then
   printx "Error: $archivepath not a directory."
   exit 2
