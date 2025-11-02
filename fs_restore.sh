@@ -50,7 +50,7 @@ function mount_backup_device {
 function unmount_backup_device {
   # Unmount if mounted
   if [ -d "$backuppath/fs" ]; then
-  sudo umount $backuppath
+    sudo umount $backuppath
   fi
 }
 
@@ -67,26 +67,26 @@ function select_archive () {
   # Get the count of options
   count="${#archives[@]}"
 
-    # Increment count to include the cancel
-    ((count++))
+  # Increment count to include the cancel
+  ((count++))
 
-    COLUMNS=1
-    select selection in "${archives[@]}" "Cancel"; do
-      if [[ "$REPLY" =~ ^[0-9]+$ && "$REPLY" -ge 1 && "$REPLY" -le $count ]]; then
-        case ${selection} in
-          "Cancel")
-            # If the user decides to cancel...
-            break
-            ;;
-          *)
-            archivepath="$backuppath/fs/$selection"
-            break
-            ;;
-        esac
-      else
-        printx "Invalid selection. Please enter a number between 1 and $count."
-      fi
-    done
+  COLUMNS=1
+  select selection in "${archives[@]}" "Cancel"; do
+    if [[ "$REPLY" =~ ^[0-9]+$ && "$REPLY" -ge 1 && "$REPLY" -le $count ]]; then
+      case ${selection} in
+        "Cancel")
+          # If the user decides to cancel...
+          break
+          ;;
+        *)
+          archivename=$selection
+          break
+          ;;
+      esac
+    else
+      printx "Invalid selection. Please enter a number between 1 and $count."
+    fi
+  done
 }
 
 function restore_partition_table {
@@ -160,17 +160,16 @@ if [[ $# -gt 0 && "$1" == "--include-active" ]]; then
   shift
 fi
 
+# Get the other arguments
 targetdisk=${1:-}
 backupdevice=${2:-}
-
-if [[ $# -gt 2 ]]; then
-  archivepath="$backuppath/fs/$3"
-fi
+archivename=${3:-}
 
 # echo "include-active=$include_active"
 # echo "targetdisk=$targetdisk"
 # echo "backupdevice=$backupdevice"
 # echo "backuppath=$backuppath"
+# echo "archivename=$archivename"
 
 if [[ -z "$targetdisk" || -z "$backupdevice" ]]; then
   show_syntax
@@ -188,13 +187,15 @@ fi
 
 mount_backup_device
 
-if [ -z $archivepath ]; then
+if [ -z $archivename ]; then
   select_archive
-fi
-
-if [[ ! -d "$archivepath" ]]; then
-  printx "Error: $archivepath not a directory."
-  exit 2
+  archivepath="$backuppath/fs/$archivename"
+else
+  archivepath="$backuppath/fs/$archivename"
+  if [[ ! -d "$archivepath" ]]; then
+    printx "Error: '$archivename' not a found on '$backupdevice'."
+    exit 2
+  fi
 fi
 
 # Check for partition table backup
@@ -240,28 +241,28 @@ if [[ ${#partitions[@]} -eq 0 ]]; then
 fi
 
 selected=()
-      for i in "${!partitions[@]}"; do
+for i in "${!partitions[@]}"; do
     read -p "Restore partition ${partitions[i]}? (y/N)" yn
     if [[ $yn == "y" || $yn == "Y" ]]; then
-        selected+=("${partitions[i]}")
+      selected+=("${partitions[i]}")
     fi
-  done
-
-  # Output selected options
-  # echo "Show selections"
-  # for i in "${!selected[@]}"; do
-  #     echo "${selected[i]}"
-  # done
-  # read
-
-if [[ "${#selected[@]}" > 0 ]]; then
-restore_partition_table
-
-for part in "${selected[@]}"; do
-    restore_filesystem
 done
 
-echo "✅ Restoration complete: $targetdisk"
+# Output selected options
+# echo "Show selections"
+# for i in "${!selected[@]}"; do
+#     echo "${selected[i]}"
+# done
+# read
+
+if [[ "${#selected[@]}" > 0 ]]; then
+  restore_partition_table
+
+  for part in "${selected[@]}"; do
+    restore_filesystem
+  done
+
+  echo "✅ Restoration complete: $targetdisk"
 else
   printx "No partitions were selected for restore."
 fi
