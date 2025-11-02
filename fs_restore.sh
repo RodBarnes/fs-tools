@@ -110,10 +110,10 @@ if [[ $# -gt 2 ]]; then
   archivepath="$backuppath/fs/$3"
 fi
 
-echo "include-active=$include_active"
-echo "targetdisk=$targetdisk"
-echo "backupdevice=$backupdevice"
-echo "backuppath=$backuppath"
+# echo "include-active=$include_active"
+# echo "targetdisk=$targetdisk"
+# echo "backupdevice=$backupdevice"
+# echo "backuppath=$backuppath"
 
 if [[ -z "$targetdisk" || -z "$backupdevice" ]]; then
   show_syntax
@@ -219,12 +219,12 @@ if true; then
       [[ "${choices[i]}" ]] && selected+=("${partitions[i]}")
   done
 
-  echo "Show selections"
   # Output selected options
-  for i in "${!selected[@]}"; do
-      echo "${selected[i]}"
-  done
-  read
+  # echo "Show selections"
+  # for i in "${!selected[@]}"; do
+  #     echo "${selected[i]}"
+  # done
+  # read
 else
   # Use whiptail for selecting partitions
   # Interactive selection with forced TERM
@@ -253,12 +253,12 @@ else
     fi
   done
 
-  echo "Show selections"
   # Output selected options
-  for i in "${!selected[@]}"; do
-      echo "${selected[i]}"
-  done
-  read
+  # echo "Show selections"
+  # for i in "${!selected[@]}"; do
+  #     echo "${selected[i]}"
+  # done
+  # read
 
   if [[ ${#selected[@]} -eq 0 ]]; then
     printx "Error: No valid partitions selected"
