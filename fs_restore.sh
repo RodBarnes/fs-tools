@@ -328,20 +328,16 @@ else
   # done
   # read
 
-  if [[ ${#selected[@]} -eq 0 ]]; then
-    printx "Error: No valid partitions selected"
-    exit
-  fi
-fi
-
+if [[ "${#selected[@]}" > 0 ]]; then
 restore_partition_table
 
-# Restore selected filesystems
 for part in "${selected[@]}"; do
-  restore_partition
+    restore_filesystem
 done
 
 echo "✅ Restoration complete: $targetdisk"
-# lsblk -f "$targetdisk"
+else
+  printx "No partitions were selected for restore."
+fi
 
 unmount_backup_device
