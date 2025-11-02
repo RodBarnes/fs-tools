@@ -48,7 +48,10 @@ function mount_backup_device {
 }
 
 function unmount_backup_device {
+  # Unmount if mounted
+  if [ -d "$backuppath/fs" ]; then
   sudo umount $backuppath
+  fi
 }
 
 function select_archive () {
@@ -147,6 +150,8 @@ function restore_filesystem {
 # --------------------
 # ------- MAIN -------
 # --------------------
+
+trap unmount_backup_device EXIT
 
 # Check for --include-active flag
 include_active=false
