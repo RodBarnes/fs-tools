@@ -160,38 +160,21 @@ if [[ ${#partitions[@]} -eq 0 ]]; then
   exit 2
 fi
 
-# Prepare whiptail checklist items: "index" "partition" "state"
-menu_items=()
-for i in "${!partitions[@]}"; do
-  menu_items+=("$((i+1))" "${partitions[i]}" "ON")
-done
-
-# Interactive selection with forced TERM
-export TERM=xterm
-selection=$(whiptail --title "Select Partitions to Backup" --checklist "Choose one or more:" 15 60 ${#partitions[@]} \
-  "${menu_items[@]}" 3>&1 1>&2 2>&3)
-if [[ $? -ne 0 ]]; then
-  # User cancelled
-  exit
-fi
-
-# Convert selected tags (indices) to partition names
-IFS=' ' read -ra selected_tags <<< "$selection"
+# Prompt the user
 selected=()
-for tag in "${selected_tags[@]}"; do
-  # Remove quotes from tag
-  tag_clean=${tag//\"/}
-  if [[ $tag_clean =~ ^[0-9]+$ ]]; then
-    index=$((tag_clean-1))
-    if [[ $index -ge 0 && $index -lt ${#partitions[@]} ]]; then
-      selected+=("${partitions[index]}")
-    else
-      printx "Warning: Invalid tag '$tag_clean' ignored"
+for i in "${!partitions[@]}"; do
+    read -p "Backup partition ${partitions[i]}? (y/N)" yn
+    if [[ $yn == "y" || $yn == "Y" ]]; then
+      selected+=("${partitions[i]}")
     fi
-  else
-    printx "Warning: Non-numeric tag '$tag_clean' ignored"
-  fi
 done
+
+# Output selected options
+# echo "Show selections"
+# for i in "${!selected[@]}"; do
+#     echo "${selected[i]}"
+# done
+# read
 
 if [[ ${#selected[@]} -eq 0 ]]; then
   printx "Error: No valid partitions selected"
