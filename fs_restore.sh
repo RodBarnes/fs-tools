@@ -15,7 +15,7 @@ function show_syntax {
   echo "Syntax: $0 [--include-active] <targetdisk> <backup_device> [backup_name]"
   echo "Where:  [--include-active] is an option to direct restoring to partitions that are active; i.e., online."
   echo "        <targetdisk> is the disk to whicih the restore should be applied."
-  echo "        <backup_device> is the device directory containing the backup files."
+  echo "        <backup_device> is the device containing the backup files."
   echo "        [backup_name] is the name of the specific backup to restore."
   exit
 }
