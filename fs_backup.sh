@@ -7,6 +7,7 @@ source /usr/local/lib/colors
 supported_fstypes="ext2|ext3|ext4|xfs|btrfs|ntfs|vfat|fat16|fat32|reiserfs"
 backuppath=/mnt/backup
 dateformat="+%Y%m%d_%H%M%S"
+descfile=archive.desc
 
 function printx {
   printf "${YELLOW}$1${NOCOLOR}\n"
@@ -14,8 +15,9 @@ function printx {
 
 function show_syntax {
   echo "Create a backup of selected partitions using fsarchiver."
-  echo "Syntax: $0 [--include-active] <sourcedisk> <backup_device>"
-  echo "Where:  [--include-active] is an option to force inclusion of partitions that are active; i.e., online."
+  echo "Syntax: $0 <sourcedisk> <backup_device> [-a|--include-active] [-c|--comment "comment"]"
+  echo "Where:  [-a|--include-active] is an option to force inclusion of partitions that are active; i.e., online."
+  echo "        [-c|--comment "comment"] is the disk containing the partitions to be included in the backup."
   echo "        <sourcedisk> is the disk containing the partitions to be included in the backup."
   echo "        <backup_device> is the device where the backup should be stored."
   exit
@@ -159,20 +161,51 @@ function select_partitions {
 
 trap 'unmount_device_at_path "$backuppath"' EXIT
 
-# Check for --include-active flag
-include_active=false
-if [[ $# -gt 0 && "$1" == "--include-active" ]]; then
-  include_active=true
-  shift
+# Retrieve the arguments
+arg_short=ac:
+arg_long=include-active,comment:
+arg_opts=$(getopt --options "$arg_short" --long "$arg_long" --name "$0" -- "$@")
+if [ $? != 0 ]; then
+    show_syntax
+    exit 1
 fi
 
-# Get other arguments
-sourcedisk=${1:-}
-backupdevice=${2:-}
+eval set -- "$arg_opts"
+while true; do
+    case "$1" in
+        -a|--include-active)
+            include_active=true
+            shift
+            ;;
+        -c|--comment)
+            comment="$2"
+            shift 2
+            ;;
+        --) # End of options
+            shift
+            break
+            ;;
+        *)
+            echo "Internal error parsing arguments: arg=$1"
+            exit 1
+            ;;
+    esac
+done
+
+if [ $# -ge 2 ]; then
+    sourcedisk="$1"
+    backupdevice="$2"
+    shift 2
+else
+    show_syntax
+    exit 1
+fi
 
 # echo "include-active=$include_active"
 # echo "sourcedisk=$sourcedisk"
 # echo "backupdevice=$backupdevice"
+# echo "comment=$comment"
+# exit
 
 if [[ -z "$sourcedisk" || -z "$backupdevice" ]]; then
   show_syntax
@@ -219,6 +252,9 @@ echo "Backing up selected partitions to $archivepath/ ..."
 for partition in "${selected[@]}"; do
   backup_filesystem "$partition" "$archivepath"
 done
+
+# Create description in the snapshot directory
+echo "($(sudo du -sh $archivepath | awk '{print $1}')) $comment" > "$archivepath/$descfile"
 
 echo "✅ Backup complete."
 # ls -lh "$archivepath"
