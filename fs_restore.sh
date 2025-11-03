@@ -89,56 +89,57 @@ function select_archive {
 }
 
 function restore_partition_table {
+  local disk=$1 path=$2
   # Restore partition table
   if [[ "$pt_type" == "gpt" ]]; then
-    if [[ ! -f "$archivepath/disk-pt.gpt" ]]; then
-      printx "Error: $archivepath/disk-pt.gpt not found."
+    if [[ ! -f "$path/disk-pt.gpt" ]]; then
+      printx "Error: $path/disk-pt.gpt not found."
       exit 1
     fi
-    sgdisk --load-backup="$archivepath/disk-pt.gpt" "$targetdisk"
+    sgdisk --load-backup="$path/disk-pt.gpt" "$disk"
   elif [[ "$pt_type" == "dos" ]]; then
-    if [[ ! -f "$archivepath/disk-pt.sf" ]]; then
-      printx "Error: $archivepath/disk-pt.sf not found."
+    if [[ ! -f "$path/disk-pt.sf" ]]; then
+      printx "Error: $path/disk-pt.sf not found."
       exit 1
     fi
-    sfdisk "$targetdisk" < "$archivepath/disk-pt.sf"
+    sfdisk "$disk" < "$path/disk-pt.sf"
   fi
-  echo "Partition table restoration complete."
 
   # Inform kernel of partition table changes
-  partprobe "$targetdisk"
+  partprobe "$disk"
 }
 
 function restore_filesystem {
-  partition_device="/dev/$part"
-  fsa_file="$archivepath/$part.fsa"
+  local part=$1 path=$2
+  partdev="/dev/$part"
+  fsa_file="$path/$part.fsa"
   if [[ ! -f "$fsa_file" ]]; then
-    printx "Error: $fsa_file not found, skipping $partition_device"
+    printx "Error: $fsa_file not found, skipping $partdev"
     continue
   fi
-  if [[ ! -b "$partition_device" ]]; then
-    printx "Error: $partition_device not a block device, skipping"
+  if [[ ! -b "$partdev" ]]; then
+    printx "Error: $partdev not a block device, skipping"
     continue
   fi
   # Check if partition is mounted
-  mount_point=$(awk -v part="$partition_device" '$1 == part {print $2}' /proc/mounts)
+  mount_point=$(awk -v part="$partdev" '$1 == part {print $2}' /proc/mounts)
   if [[ -n "$mount_point" ]]; then
-    printx "Error: $partition_device is mounted at $mount_point."
+    printx "Error: $partdev is mounted at $mount_point."
     read -p "Proceed and unmount it first? [y/N] " response
     if [[ "$response" =~ ^[yY]$ ]]; then
       if ! umount "$mount_point"; then
-        printx "Error: Failed to unmount $mount_point, skipping $partition_device"
+        printx "Error: Failed to unmount $mount_point, skipping $partdev"
       fi
     else
-      printx "Skipping restoration of $partition_device"
+      printx "Skipping restoration of $partdev"
     fi
   fi
-  if [[ "$partition_device" == "$root_part" ]]; then
-    printx "Warning: Restoring active root partition $partition_device may cause system instability"
+  if [[ "$partdev" == "$root_part" ]]; then
+    printx "Warning: Restoring active root partition $partdev may cause system instability"
   fi
-  echo "Restoring $fsa_file -> $partition_device"
-  if ! fsarchiver restfs "$fsa_file" id=0,dest="$partition_device"; then
-    printx "Error: Failed to restore $partition_device"
+  echo "Restoring $fsa_file -> $partdev"
+  if ! fsarchiver restfs "$fsa_file" id=0,dest="$partdev"; then
+    printx "Error: Failed to restore $partdev"
   fi
 }
 
@@ -229,8 +230,8 @@ menu_items=()
 for i in "${!fsa_files[@]}"; do
   fsa_file=${fsa_files[i]}
   partition=$(basename "$fsa_file" .fsa)
-  partition_device="/dev/$partition"
-  if [[ "$partition_device" == "$root_part" && "$include_active" == "false" ]]; then
+  partdev="/dev/$partition"
+  if [[ "$partdev" == "$root_part" && "$include_active" == "false" ]]; then
     echo "Note: Skipping $partition (active root partition; use --include-active to restore)"
   else
     partitions+=("$partition")
@@ -260,9 +261,10 @@ done
 
 if [[ "${#selected[@]}" > 0 ]]; then
   echo "Restoring partition table to $targetdisk ..."
+  restore_partition_table "$targetdisk" "$archivepath"
 
-  for part in "${selected[@]}"; do
-    restore_filesystem
+  for partition in "${selected[@]}"; do
+    restore_filesystem "$partition" "$archivepath"
   done
 
   echo "✅ Restoration complete: $targetdisk"
