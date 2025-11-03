@@ -50,6 +50,7 @@ function mount_device_at_path {
 
 function unmount_device_at_path {
   local mount=$1
+
   # Unmount if mounted
   if [ -d "$mount/fs" ]; then
     sudo umount $mount
@@ -57,7 +58,9 @@ function unmount_device_at_path {
 }
 
 function select_archive {
-  local path=$1 name archives=()
+  local path=$1
+  local name archives=()
+
   # Get the archives
   while IFS= read -r archive; do
     archives+=("${archive}")
@@ -90,6 +93,7 @@ function select_archive {
 
 function restore_partition_table {
   local disk=$1 path=$2
+
   # Restore partition table
   if [[ "$pt_type" == "gpt" ]]; then
     if [[ ! -f "$path/disk-pt.gpt" ]]; then
@@ -110,37 +114,81 @@ function restore_partition_table {
 }
 
 function restore_filesystem {
-  local part=$1 path=$2
-  partdev="/dev/$part"
-  fsa_file="$path/$part.fsa"
-  if [[ ! -f "$fsa_file" ]]; then
-    printx "Error: $fsa_file not found, skipping $partdev"
+  local part=$1 path=$2 root=$3
+
+  local device="/dev/$part"
+  local filepath="$path/$part.fsa"
+
+  if [[ ! -f "$filepath" ]]; then
+    printx "Error: $filepath not found, skipping $device"
     continue
   fi
-  if [[ ! -b "$partdev" ]]; then
-    printx "Error: $partdev not a block device, skipping"
+  if [[ ! -b "$device" ]]; then
+    printx "Error: $device not a block device, skipping"
     continue
   fi
+
   # Check if partition is mounted
-  mount_point=$(awk -v part="$partdev" '$1 == part {print $2}' /proc/mounts)
+  local mount_point=$(awk -v part="$device" '$1 == part {print $2}' /proc/mounts)
   if [[ -n "$mount_point" ]]; then
-    printx "Error: $partdev is mounted at $mount_point."
+    printx "Error: $device is mounted at $mount_point."
     read -p "Proceed and unmount it first? [y/N] " response
     if [[ "$response" =~ ^[yY]$ ]]; then
       if ! umount "$mount_point"; then
-        printx "Error: Failed to unmount $mount_point, skipping $partdev"
+        printx "Error: Failed to unmount $mount_point, skipping $device"
       fi
     else
-      printx "Skipping restoration of $partdev"
+      printx "Skipping restoration of $device"
     fi
   fi
-  if [[ "$partdev" == "$root_part" ]]; then
-    printx "Warning: Restoring active root partition $partdev may cause system instability"
+  if [[ "$device" == "$root" ]]; then
+    printx "Warning: Restoring active root partition $device may cause system instability"
   fi
-  echo "Restoring $fsa_file -> $partdev"
-  if ! fsarchiver restfs "$fsa_file" id=0,dest="$partdev"; then
-    printx "Error: Failed to restore $partdev"
+  echo "Restoring $filepath -> $device"
+  if ! fsarchiver restfs "$filepath" id=0,dest="$device"; then
+    printx "Error: Failed to restore $device"
   fi
+}
+
+function select_partitions {
+  local path=$1 root=$2 active=$2
+
+  # Find available .fsa files
+  local fsa_files=($(ls -1 "$path"/*.fsa 2>/dev/null))
+  if [[ ${#fsa_files[@]} -eq 0 ]]; then
+    printx "Error: No .fsa files found in $path" >&2
+    exit 3
+  fi
+
+  # Filter .fsa files, excluding the active partition unless --include-active is used
+  local partitions=()
+  for i in "${!fsa_files[@]}"; do
+    local filename=${fsa_files[i]}
+    local partname=$(basename "$filename" .fsa)
+    local device="/dev/$partname"
+    if [[ "$device" == "$root" && "$active" == "false" ]]; then
+      echo "Note: Skipping $partname (active root partition; use --include-active to restore)" >&2
+    else
+      partitions+=("$partname")
+    fi
+  done
+  if [[ ${#partitions[@]} -eq 0 ]]; then
+    printx "Error: No valid partitions available for restore." >&2
+    exit 3
+  fi
+
+  local selected=()
+  for i in "${!partitions[@]}"; do
+      read -p "Restore partition ${partitions[i]}? (y/N)" yn
+      if [[ $yn == "y" || $yn == "Y" ]]; then
+        selected+=("${partitions[i]}")
+      fi
+  done
+
+  # Output the selections
+  for i in "${!selected[@]}"; do
+      echo "${selected[i]}"
+  done
 }
 
 # --------------------
@@ -200,7 +248,7 @@ else
   fi
 fi
 
-echo "Restoring '$archivename' to '$targetdisk'"
+echo "Restoring '$archivename' to '$targetdisk'..."
 
 # Check for partition table backup
 if [[ ! -f "$archivepath/pt-type" ]]; then
@@ -214,43 +262,11 @@ if [[ "$pt_type" != "gpt" && "$pt_type" != "dos" ]]; then
   exit 3
 fi
 
-# Find available .fsa files
-fsa_files=($(ls -1 "$archivepath"/*.fsa 2>/dev/null))
-if [[ ${#fsa_files[@]} -eq 0 ]]; then
-  printx "Error: No .fsa files found in $archivepath"
-  exit 3
-fi
-
 # Get the active root partition
 root_part=$(findmnt -n -o SOURCE /)
 
-# Filter .fsa files, excluding the active partition unless --include-active is used
-partitions=()
-menu_items=()
-for i in "${!fsa_files[@]}"; do
-  fsa_file=${fsa_files[i]}
-  partition=$(basename "$fsa_file" .fsa)
-  partdev="/dev/$partition"
-  if [[ "$partdev" == "$root_part" && "$include_active" == "false" ]]; then
-    echo "Note: Skipping $partition (active root partition; use --include-active to restore)"
-  else
-    partitions+=("$partition")
-    menu_items+=("$((i+1))" "$partition" "ON")
-  fi
-done
-
-if [[ ${#partitions[@]} -eq 0 ]]; then
-  printx "Error: No valid partitions available for restore."
-  exit 3
-fi
-
-selected=()
-for i in "${!partitions[@]}"; do
-    read -p "Restore partition ${partitions[i]}? (y/N)" yn
-    if [[ $yn == "y" || $yn == "Y" ]]; then
-      selected+=("${partitions[i]}")
-    fi
-done
+# Selected the partitions to retore
+readarray -t selected < <(select_partitions "$archivepath" "$root_part" "$include_active")   
 
 # Output selected options
 # echo "Show selections"
@@ -264,7 +280,7 @@ if [[ "${#selected[@]}" > 0 ]]; then
   restore_partition_table "$targetdisk" "$archivepath"
 
   for partition in "${selected[@]}"; do
-    restore_filesystem "$partition" "$archivepath"
+    restore_filesystem "$partition" "$archivepath" "$root_part"
   done
 
   echo "✅ Restoration complete: $targetdisk"
