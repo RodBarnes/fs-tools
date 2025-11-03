@@ -91,7 +91,6 @@ function select_archive () {
 
 function restore_partition_table {
   # Restore partition table
-  echo "Restoring partition table to $targetdisk ..."
   if [[ "$pt_type" == "gpt" ]]; then
     if [[ ! -f "$archivepath/disk-pt.gpt" ]]; then
       printx "Error: $archivepath/disk-pt.gpt not found."
@@ -198,6 +197,8 @@ else
   fi
 fi
 
+echo "Restoring '$archivename' to '$targetdisk'"
+
 # Check for partition table backup
 if [[ ! -f "$archivepath/pt-type" ]]; then
   printx "Error: $archivepath/pt-type not found."
@@ -256,7 +257,7 @@ done
 # read
 
 if [[ "${#selected[@]}" > 0 ]]; then
-  restore_partition_table
+  echo "Restoring partition table to $targetdisk ..."
 
   for part in "${selected[@]}"; do
     restore_filesystem

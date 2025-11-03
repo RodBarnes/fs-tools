@@ -54,6 +54,7 @@ function unmount_backup_device {
 
 function backup_partition_table() {
   local disk=$1 imgdir=$2
+  # Get the partition info
   if fdisk -l "$disk" 2>/dev/null | grep -q '^Disklabel type: gpt'; then
     sgdisk --backup="$imgdir/disk-pt.gpt" "$disk"
     echo "gpt" > "$imgdir/pt-type"
@@ -61,7 +62,6 @@ function backup_partition_table() {
     sfdisk --dump "$disk" > "$imgdir/disk-pt.sf"
     echo "dos" > "$imgdir/pt-type"
   fi
-  echo "Saved partition table to $imgdir/"
 }
 
 function backup_filesystem {
@@ -188,6 +188,8 @@ fi
 # Create backup directory and save partition table
 imgdir="$backuppath/fs/$(date $dateformat)_$(hostname -s)"
 mkdir -p "$imgdir"
+
+echo "Saving partition table to $imgdir/..."
 backup_partition_table "$sourcedisk" "$imgdir"
 
 echo "Backing up selected partitions to $imgdir/ ..."

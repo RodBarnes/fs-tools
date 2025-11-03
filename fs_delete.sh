@@ -23,12 +23,10 @@ function show_syntax {
 }
 
 function mount_device_at_path {
-  local device=$1
-  local mount=$2
-
+  local device=$1 mount=$2
   # Ensure mount point exists
   if [ ! -d $mount ]; then
-    sudo mkdir -p $mount #&> /dev/null
+    sudo mkdir -p $mount
     if [ $? -ne 0 ]; then
       printx "Unable to locate or create '$mount'." >&2
       exit 2
@@ -36,7 +34,7 @@ function mount_device_at_path {
   fi
 
   # Attempt to mount the device
-  sudo mount $device $mount #&> /dev/null
+  sudo mount $device $mount
   if [ $? -ne 0 ]; then
     printx "Unable to mount the backup backupdevice '$device'." >&2
     exit 2
@@ -44,7 +42,7 @@ function mount_device_at_path {
 
   # Ensure the directory structure exists
   if [ ! -d "$mount/fs" ]; then
-    sudo mkdir "$mount/fs" $&> /dev/null
+    sudo mkdir "$mount/fs"
     if [ $? -ne 0 ]; then
       printx "Unable to locate or create '$mount/fs'." >&2
       exit 2
@@ -60,11 +58,8 @@ function unmount_device_at_path {
   fi
 }
 
-function select_archive () {
-  local path=$1
-  local name
-  local archives=()
-
+function select_archive {
+  local path=$1 name archives=()
   # Get the archives
   while IFS= read -r archive; do
     archives+=("${archive}")
