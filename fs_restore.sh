@@ -22,6 +22,7 @@ function show_syntax {
 
 function mount_device_at_path {
   local device=$1 mount=$2
+
   # Ensure mount point exists
   if [ ! -d $mount ]; then
     sudo mkdir -p $mount
@@ -59,6 +60,7 @@ function unmount_device_at_path {
 
 function select_archive {
   local path=$1
+  
   local name archives=()
 
   # Get the archives

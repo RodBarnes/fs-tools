@@ -19,6 +19,7 @@ function show_syntax {
 
 function mount_device_at_path {
   local device=$1 mount=$2
+
   # Ensure mount point exists
   if [ ! -d $mount ]; then
     sudo mkdir -p $mount
@@ -30,6 +31,7 @@ function mount_device_at_path {
 
   # Attempt to mount the device
   sudo mount $device $mount
+
   if [ $? -ne 0 ]; then
     printx "Unable to mount the backup backupdevice '$device'." >&2
     exit 2
@@ -47,6 +49,7 @@ function mount_device_at_path {
 
 function unmount_device_at_path {
   local mount=$1
+
   # Unmount if mounted
   if [ -d "$mount/fs" ]; then
     sudo umount $mount
@@ -55,6 +58,7 @@ function unmount_device_at_path {
 
 function list_archives {
   local path=$1
+  
   # Get the archives
   unset archives
   while IFS= read -r name; do

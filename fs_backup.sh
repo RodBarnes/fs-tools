@@ -23,6 +23,7 @@ function show_syntax {
 
 function mount_device_at_path {
   local device=$1 mount=$2
+  
   # Ensure mount point exists
   if [ ! -d $mount ]; then
     sudo mkdir -p $mount
@@ -51,6 +52,7 @@ function mount_device_at_path {
 
 function unmount_device_at_path {
   local mount=$1
+
   # Unmount if mounted
   if [ -d "$mount/fs" ]; then
     sudo umount $mount
@@ -71,6 +73,7 @@ function backup_partition_table() {
 
 function backup_filesystem {
   local partfs=$1 path=$2
+
   # Detect if mounted RW
   local partition_device="/dev/$partfs"
   local mounted_rw=false
