@@ -5,6 +5,7 @@ set -eo pipefail
 source /usr/local/lib/colors
 
 backuppath=/mnt/backup
+descfile=archive.desc
 
 function printx {
   printf "${YELLOW}$1${NOCOLOR}\n"
@@ -65,7 +66,12 @@ function select_archive {
 
   # Get the archives
   while IFS= read -r archive; do
-    archives+=("${archive}")
+    if [ -f "$path/fs/$archive/$descfile" ]; then
+      comment=$(cat "$path/fs/$archive/$descfile")
+    else
+      comment="<no desc>"
+    fi
+    archives+=("${archive}: $comment")
   done < <( ls -1 "$path/fs" )
 
   # Get the count of options and increment to include cancel
@@ -81,7 +87,7 @@ function select_archive {
           break
           ;;
         *)
-          name=$selection
+          name="${selection%%:*}"
           break
           ;;
       esac
