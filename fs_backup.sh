@@ -208,6 +208,6 @@ for partition in "${selected[@]}"; do
   backup_filesystem "$partition" "$archivepath"
 done
 
-echo "✅ Backup complete: $archivepath"
+echo "✅ Backup complete."
 # ls -lh "$archivepath"
 

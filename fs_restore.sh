@@ -285,7 +285,7 @@ if [[ "${#selected[@]}" > 0 ]]; then
     restore_filesystem "$partition" "$archivepath" "$root_part"
   done
 
-  echo "✅ Restoration complete: $targetdisk"
+  echo "✅ Restoration complete."
 else
   printx "No partitions were selected for restore."
 fi
