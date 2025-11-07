@@ -15,19 +15,27 @@ show_syntax() {
 }
 
 list_archives() {
-  local path=$1
-  
+  local device=$1 path=$2
+
   # Get the archives
-  unset archives
+  local archives=() note name
+  local i=0
   while IFS= read -r name; do
-    if [ -f "$path/fs/$name/$descfile" ]; then
-      comment=$(cat "$path/fs/$name/$descfile")
-    else
-      comment="<no desc>"
+    if [ $i -eq 0 ]; then
+      echo "Backup files on $device" >&2
     fi
-    echo "$name: $comment"
-    # archives+=("${LINE}")
-  done < <( ls -1 "$path/fs" )
+    if [ -f "$path/$name/$descfile" ]; then
+      note=$(cat "$path/$name/$descfile")
+    else
+      note="<no desc>"
+    fi
+    echo "$name: $note" >&2
+    ((i++))
+  done < <( ls -1 "$path" )
+
+  if [ $i -eq 0 ]; then
+    printx "There are no backups on $device" >&2
+  fi
 }
 
 # --------------------
@@ -58,7 +66,5 @@ if [[ ! -b "$backupdevice" ]]; then
 fi
 
 mount_device_at_path "$backupdevice" "$backuppath"
-
-echo "Listing backup files..."
-list_archives "$backuppath"
+list_archives "$backupdevice" "$backuppath/$backupdir"
 
