@@ -21,3 +21,5 @@ Usage: `sudo fs_restore <backup_device> <restore_device> [-d] [snapshot_name]`
 
 Restores an archive (created by `fs_backup`) and allows selecting the specific partitions to restore.  Allows for backing up active (online) partitions.  Best use is to run `fs_restore` from a server's recovery partition or live media.
 
+## fs_shared.sh
+Shared functions and variables for `fs_tools`
