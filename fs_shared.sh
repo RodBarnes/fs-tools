@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Common code and variables for fs_tools
+# Shared code and variables for fs_tools
 
 source /usr/local/lib/common
 
