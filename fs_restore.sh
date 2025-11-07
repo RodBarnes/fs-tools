@@ -25,13 +25,13 @@ restore_partition_table() {
       printx "Error: $path/disk-pt.gpt not found." >&2
       exit 1
     fi
-    sgdisk --load-backup="$path/disk-pt.gpt" "$disk"
+    sgdisk --load-backup="$path/disk-pt.gpt" "$disk" &>> "$g_outputfile"
   elif [[ "$pt_type" == "dos" ]]; then
     if [[ ! -f "$path/disk-pt.sf" ]]; then
       printx "Error: $path/disk-pt.sf not found." >&2
       exit 1
     fi
-    sfdisk "$disk" < "$path/disk-pt.sf"
+    sfdisk "$disk" < "$path/disk-pt.sf" &>> "$g_outputfile"
   fi
 
   # Inform kernel of partition table changes
@@ -70,7 +70,8 @@ restore_filesystem() {
     printx "Warning: Restoring active root partition $device may cause system instability" >&2
   fi
   echo "Restoring $filepath -> $device"
-  if ! fsarchiver restfs "$filepath" id=0,dest="$device"; then
+  fsarchiver restfs "$filepath" id=0,dest="$device" &>> "$g_outputfile"
+  if [ $? -ne 0 ]; then
     printx "Error: Failed to restore $device" >&2
   fi
 }
@@ -185,6 +186,9 @@ if [[ "$EUID" != 0 ]]; then
   exit 1
 fi
 
+# Initialize the log file
+echo &> "$g_outputfile"
+
 mount_device_at_path "$backupdevice" "$g_backuppath"
 
 if [ -z $archivename ]; then
@@ -240,6 +244,7 @@ if [[ "${#selected[@]}" > 0 ]]; then
   done
 
   echo "✅ Restoration complete."
+  echo "Details of the operation can be viewed in the file /tmp/$g_outputfile"
 else
   printx "No partitions were selected for restore."
 fi
