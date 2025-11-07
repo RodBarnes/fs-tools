@@ -2,6 +2,10 @@
 
 source /usr/local/lib/common
 
+g_descfile=comment.txt
+g_backuppath=/mnt/backup
+g_backupdir="fs"
+
 select_archive() {
   local path=$1
   

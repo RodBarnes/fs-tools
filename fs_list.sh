@@ -4,11 +4,7 @@
 
 set -eo pipefail
 
-source fs_functions.sh
-
-backuppath=/mnt/backup
-backupdir="fs"
-descfile=comment.txt
+source /usr/local/lib/fs_shared
 
 show_syntax() {
   echo "List backups created by fs_backup"

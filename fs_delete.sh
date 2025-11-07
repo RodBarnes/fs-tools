@@ -4,10 +4,7 @@
 
 set -eo pipefail
 
-source fs_functions.sh
-
-backuppath=/mnt/backup
-descfile=comment.txt
+source /usr/local/lib/fs_shared
 
 show_syntax() {
   echo "Delete a backup created by fs_backup"

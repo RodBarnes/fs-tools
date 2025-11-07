@@ -4,12 +4,7 @@
 
 set -eo pipefail
 
-source fs_functions.sh
-
-supported_fstypes="ext2|ext3|ext4|xfs|btrfs|ntfs|vfat|fat16|fat32|reiserfs"
-backuppath=/mnt/backup
-dateformat="+%Y%m%d_%H%M%S"
-descfile=comment.txt
+source /usr/local/lib/fs_shared
 
 show_syntax() {
   echo "Create a backup of selected partitions using fsarchiver."
