@@ -5,12 +5,13 @@ set -eo pipefail
 source fs_functions.sh
 
 backuppath=/mnt/backup
+backupdir="fs"
 descfile=comment.txt
 
 show_syntax() {
   echo "List backups created by fs_backup"
   echo "Syntax: $0 <backup_device>"
-  echo "Where:  <backup_device> is the device containing the backup files."
+  echo "Where:  <backup_device> can be a backupdevice designator (e.g., /dev/sdb6), a UUID, filesystem LABEL, or partition UUID"
   exit
 }
 
@@ -46,11 +47,16 @@ trap 'unmount_device_at_path "$backuppath"' EXIT
 
 # Get the arguments
 if [ $# -ge 1 ]; then
-  backupdevice=${1:-}
+  arg="$1"
   shift 1
+  device="${arg#/dev/}" # in case it is a device designator
+  backupdevice="/dev/$(lsblk -ln -o NAME,UUID,PARTUUID,LABEL | grep "$device" | tr -s ' ' | cut -d ' ' -f1)"
+  if [ -z $backupdevice ]; then
+    printx "No valid device was found for '$device'."
+    exit
+  fi
 else
-  show_syntax >&2
-  exit 1
+  show_syntax
 fi
 
 # echo "backupdevice=$backupdevice"
