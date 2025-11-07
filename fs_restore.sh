@@ -120,7 +120,7 @@ select_restore_partitions() {
 # ------- MAIN -------
 # --------------------
 
-trap 'unmount_device_at_path "$backuppath"' EXIT
+trap 'unmount_device_at_path "$g_backuppath"' EXIT
 
 # Get the arguments
 arg_short=ad:
@@ -171,12 +171,10 @@ else
   show_syntax
 fi
 
-# echo "backuppath=$backuppath"
-# echo "include-active=$include_active"
 # echo "targetdisk=$targetdisk"
 # echo "backupdevice=$backupdevice"
 # echo "archivename=$archivename"
-# exit
+# echo "include-active=$include_active"
 
 if [ -z $backupdevice ] || [ -z $targetdisk ]; then
   show_syntax
@@ -187,19 +185,19 @@ if [[ "$EUID" != 0 ]]; then
   exit 1
 fi
 
-mount_device_at_path "$backupdevice" "$backuppath"
+mount_device_at_path "$backupdevice" "$g_backuppath"
 
 if [ -z $archivename ]; then
   echo "Select an archive..."
-  archivename=$(select_archive "$backuppath")
+  archivename=$(select_archive "$g_backuppath")
   if [ -z $archivename ]; then
     echo "Operation cancelled" >&2
     exit
   else
-    archivepath="$backuppath/fs/$archivename"
+    archivepath="$g_backuppath/$g_backupdir/$archivename"
   fi
 else
-  archivepath="$backuppath/fs/$archivename"
+  archivepath="$g_backuppath/$g_backupdir/$archivename"
   if [[ ! -d "$archivepath" ]]; then
     printx "Error: '$archivename' not a found on '$backupdevice'."
     exit 2

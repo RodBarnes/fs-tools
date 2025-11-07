@@ -41,7 +41,7 @@ list_archives() {
 # ------- MAIN -------
 # --------------------
 
-trap 'unmount_device_at_path "$backuppath"' EXIT
+trap 'unmount_device_at_path "$g_backuppath"' EXIT
 
 # Get the arguments
 if [ $# -ge 1 ]; then
@@ -58,7 +58,6 @@ else
 fi
 
 # echo "backupdevice=$backupdevice"
-# echo "backuppath=$backuppath"
 
 if [[ -z "$backupdevice" ]]; then
   show_syntax
@@ -69,6 +68,6 @@ if [[ "$EUID" != 0 ]]; then
   exit 1
 fi
 
-mount_device_at_path "$backupdevice" "$backuppath"
-list_archives "$backupdevice" "$backuppath/$backupdir"
+mount_device_at_path "$backupdevice" "$g_backuppath"
+list_archives "$backupdevice" "$g_backuppath/$g_backupdir"
 
