@@ -141,7 +141,7 @@ while true; do
       include_active=true
       shift
       ;;
-    -d|--directory)
+    -b|--backup)
       archivename="$2"
       shift 2
       ;;
@@ -157,12 +157,21 @@ while true; do
 done
 
 if [ $# -ge 2 ]; then
-  targetdisk="$1"
-  backupdevice="$2"
-  shift 2
+  arg="$1"
+  shift 1
+  device="${arg#/dev/}" # in case it is a device designator
+  backupdevice="/dev/$(lsblk -ln -o NAME,UUID,PARTUUID,LABEL | grep "$device" | tr -s ' ' | cut -d ' ' -f1)"
+  if [ -z $backupdevice ]; then
+    printx "No valid device was found for '$device'."
+    exit
+  fi
+  targetdisk="$2"
+  shift 1
+  if [[ ! -b "$targetdisk" ]]; then
+  printx "Error: The specified target '$targetdisk' is not a block device."
+  exit
 else
-  show_syntax >&2
-  exit 1
+  show_syntax
 fi
 
 # echo "backuppath=$backuppath"
@@ -172,14 +181,13 @@ fi
 # echo "archivename=$archivename"
 # exit
 
-if [[ ! -b "$targetdisk" ]]; then
-  printx "Error: The specified target disk '$targetdisk' is not a block device."
-  exit 2
+if [ -z $backupdevice ] || [ -z $targetdisk ]; then
+  show_syntax
 fi
 
-if [[ ! -b "$backupdevice" ]]; then
-  printx "Error: The specified backup device '$backupdevice' is not a block device."
-  exit 2
+if [[ "$EUID" != 0 ]]; then
+  printx "This must be run as sudo.\n"
+  exit 1
 fi
 
 mount_device_at_path "$backupdevice" "$backuppath"
