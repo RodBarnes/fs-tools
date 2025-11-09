@@ -218,4 +218,4 @@ echo "($(sudo du -sh $archivepath | awk '{print $1}')) $comment" > "$archivepath
 
 echo "✅ Backup complete."
 # ls -lh "$archivepath"
-echo "Details of the operation can be viewed in the file /tmp/$g_outputfile"
+echo "Details of the operation can be viewed in the file $g_outputfile"
