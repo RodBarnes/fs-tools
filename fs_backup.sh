@@ -36,10 +36,10 @@ backup_filesystem() {
   if [[ -n "$mount_point" ]]; then
     if awk -v part="$partition_device" '$1 == part {print $4}' /proc/mounts | grep -q '^rw'; then
       mounted_rw=true
-      printx "Warning: $partition_device is mounted RW at $mount_point (live backup may have minor inconsistencies)" >&2
-      printx "Consider remounting read-only with: mount -o remount,ro $mount_point" >&2
+      showx "Warning: $partition_device is mounted RW at $mount_point (live backup may have minor inconsistencies)"
+      showx "Consider remounting read-only with: mount -o remount,ro $mount_point"
     else
-      echo "Note: $partition_device is mounted read-only at $mount_point" >&2
+      show "Note: $partition_device is mounted read-only at $mount_point"
     fi
   fi
 
@@ -61,10 +61,10 @@ backup_filesystem() {
     options="$options -A"
   fi
 
-  printf "Backing up $partition_device to archive..." >&2
+  show "Backing up $partition_device to archive..."
   fsarchiver savefs $options "$fsa_file" "$partition_device" &>> "$g_outputfile"
   if [ $? -ne 0 ]; then
-    printx "\nError: Failed to back up $partition_device" >&2
+    showx "\nError: Failed to back up $partition_device"
   fi
 }
 
@@ -78,7 +78,7 @@ select_backup_partitions() {
     if [[ -n "$fstype" && $fstype =~ ^($supported_fstypes)$ ]]; then
       if [[ "$partition" == "$root" && "$include_active" == "false" ]]; then
         # Skip active partitions unless user specifically asks to include them
-        echo "Note: Skipping $partition (active root partition; use --include-active to back up)" >&2
+        show "Note: Skipping $partition (active root partition; use --include-active to back up)"
       else
         partitions+=("${partition#/dev/}")
       fi
@@ -86,7 +86,7 @@ select_backup_partitions() {
   done < <(sfdisk --list "$disk" | awk '/^\/dev\// && $1 ~ /'"${disk##*/}"'[0-9]/ {print $1}' | sort)
 
   if [[ ${#partitions[@]} -eq 0 ]]; then
-    printx "No supported filesystems found on $disk" >&2
+    showx "No supported filesystems found on $disk"
     exit 2
   fi
 

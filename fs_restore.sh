@@ -20,13 +20,13 @@ restore_partition_table() {
   # Restore partition table
   if [[ "$pt_type" == "gpt" ]]; then
     if [[ ! -f "$path/disk-pt.gpt" ]]; then
-      printx "Error: $path/disk-pt.gpt not found." >&2
+      showx "Error: $path/disk-pt.gpt not found."
       exit 1
     fi
     sgdisk --load-backup="$path/disk-pt.gpt" "$disk" &>> "$g_outputfile"
   elif [[ "$pt_type" == "dos" ]]; then
     if [[ ! -f "$path/disk-pt.sf" ]]; then
-      printx "Error: $path/disk-pt.sf not found." >&2
+      showx "Error: $path/disk-pt.sf not found."
       exit 1
     fi
     sfdisk "$disk" < "$path/disk-pt.sf" &>> "$g_outputfile"
@@ -43,34 +43,34 @@ restore_filesystem() {
   local filepath="$path/$part.fsa"
 
   if [[ ! -f "$filepath" ]]; then
-    printx "Error: $filepath not found, skipping $device" >&2
+    showx "Error: $filepath not found, skipping $device"
     continue
   fi
   if [[ ! -b "$device" ]]; then
-    printx "Error: $device not a block device, skipping" >&2
+    showx "Error: $device not a block device, skipping"
     continue
   fi
 
   # Check if partition is mounted
   local mount=$(mountpoint -q $path)
   if [[ -n "$mount" ]]; then
-    printx "Error: $device is mounted at $mount." >&2
-    read -p "Proceed and unmount it first? [y/N] " response
-    if [[ "$response" =~ ^[yY]$ ]]; then
+    showx "Error: $device is mounted at $mount."
+    readx -p "Proceed and unmount it first? [y/N] " yn
+    if [[ "$yn" =~ ^[yY]$ ]]; then
       if ! umount "$mount"; then
-        printx "Error: Failed to unmount $mount, skipping $device" >&2
+        showx "Error: Failed to unmount $mount, skipping $device"
       fi
     else
-      printx "Skipping restoration of $device" >&2
+      showx "Skipping restoration of $device"
     fi
   fi
   if [[ "$device" == "$root" ]]; then
-    printx "Warning: Restoring active root partition $device may cause system instability" >&2
+    showx "Warning: Restoring active root partition $device may cause system instability"
   fi
-  echo "Restoring $filepath -> $device"
+  show "Restoring $filepath -> $device"
   fsarchiver restfs "$filepath" id=0,dest="$device" &>> "$g_outputfile"
   if [ $? -ne 0 ]; then
-    printx "Error: Failed to restore $device" >&2
+    showx "Error: Failed to restore $device"
   fi
 }
 
@@ -80,7 +80,7 @@ select_restore_partitions() {
   # Find available .fsa files
   local fsa_files=($(ls -1 "$path"/*.fsa 2>/dev/null))
   if [[ ${#fsa_files[@]} -eq 0 ]]; then
-    printx "Error: No .fsa files found in $path" >&2
+    showx "Error: No .fsa files found in $path"
     exit 3
   fi
 
@@ -91,13 +91,13 @@ select_restore_partitions() {
     local partname=$(basename "$filename" .fsa)
     local device="/dev/$partname"
     if [[ "$device" == "$root" && "$active" == "false" ]]; then
-      echo "Note: Skipping $partname (active root partition; use --include-active to restore)" >&2
+      show "Note: Skipping $partname (active root partition; use --include-active to restore)"
     else
       partitions+=("$partname")
     fi
   done
   if [[ ${#partitions[@]} -eq 0 ]]; then
-    printx "Error: No valid partitions available for restore." >&2
+    showx "Error: No valid partitions available for restore."
     exit 3
   fi
 
@@ -111,7 +111,7 @@ select_restore_partitions() {
 
   # Output the selections
   for i in "${!selected[@]}"; do
-      echo "${selected[i]}"
+    echo "${selected[i]}"
   done
 }
 
@@ -193,7 +193,7 @@ if [ -z $archivename ]; then
   echo "Select an archive..."
   archivename=$(select_archive "$g_backuppath")
   if [ -z $archivename ]; then
-    echo "Operation cancelled" >&2
+    show "Operation cancelled"
     exit
   else
     archivepath="$g_backuppath/$g_backupdir/$archivename"
