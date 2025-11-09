@@ -6,7 +6,7 @@ source /usr/local/lib/display
 source /usr/local/lib/device
 
 g_descfile=comment.txt
-g_outputfile="/tmp/$0.out"
+g_outputfile="/tmp/$(basename $0).out"
 g_backuppath=/mnt/backup
 g_backupdir="fs"
 
