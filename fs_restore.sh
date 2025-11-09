@@ -161,11 +161,12 @@ if [ $# -ge 2 ]; then
     printx "No valid device was found for '$device'."
     exit
   fi
-  targetdisk="$2"
+  targetdisk="$1"
   shift 1
   if [[ ! -b "$targetdisk" ]]; then
-  printx "Error: The specified target '$targetdisk' is not a block device."
-  exit
+    printx "No valid device was found for '$targetdisk'."
+    exit
+  fi
 else
   show_syntax
 fi
