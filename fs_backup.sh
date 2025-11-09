@@ -73,6 +73,7 @@ select_backup_partitions() {
 
   # show "disk=$disk, root=$root, active=$active"
   
+  local supported_fstypes="ext2|ext3|ext4|xfs|btrfs|ntfs|vfat|fat16|fat32|reiserfs"
   local partitions=()
   while IFS= read -r partition; do
     local fstype=$(lsblk -fno fstype "$partition" | head -n1)
@@ -115,8 +116,6 @@ select_backup_partitions() {
 # --------------------
 # ------- MAIN -------
 # --------------------
-
-supported_fstypes="ext2|ext3|ext4|xfs|btrfs|ntfs|vfat|fat16|fat32|reiserfs"
 
 trap 'unmount_device_at_path "$g_backuppath"' EXIT
 
