@@ -74,7 +74,7 @@ restore_filesystem() {
 }
 
 select_restore_partitions() {
-  local path=$1 root=$2 active=$2
+  local path=$1 root=$2
 
   # Find available .fsa files
   local fsa_files=($(ls -1 "$path"/*.fsa 2>/dev/null))
