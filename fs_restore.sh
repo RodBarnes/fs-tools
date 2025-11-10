@@ -6,7 +6,7 @@ source /usr/local/lib/fs_shared
 
 show_syntax() {
   echo "Restore a backup created by fs_backup"
-  echo "Syntax: $0 <backup_device> <target_disk> [-a|--include-active] [-b|--backup]"
+  echo "Syntax: $0 <backup_device> <target_disk> [-b|--backup]"
   echo "Where:  <backup_device> can be a backupdevice designator (e.g., /dev/sdb6), a UUID, filesystem LABEL, or partition UUID"
   echo "        <target_disk> is the disk to which the restore should be applied."
   echo "        [-a|--include-active] is an option to direct restoring to partitions that are active; i.e., online."
@@ -84,14 +84,15 @@ select_restore_partitions() {
     exit 3
   fi
 
-  # Filter .fsa files, excluding the active partition unless --include-active is used
+  # Filter .fsa files, excluding the active partition
   local partitions=()
   for i in "${!fsa_files[@]}"; do
     local filename=${fsa_files[i]}
     local partname=$(basename "$filename" .fsa)
     local device="/dev/$partname"
-    if [[ "$device" == "$root" && "$active" == "false" ]]; then
-      show "Note: Skipping $partname (active root partition; use --include-active to restore)"
+    if [[ $device == $root ]]; then
+      showx "Note: Skipping $partname because it is the currently active partition."
+      showx "To restore this partition, run this program from another partition."
     else
       partitions+=("$partname")
     fi
@@ -122,8 +123,8 @@ select_restore_partitions() {
 trap 'unmount_device_at_path "$g_backuppath"' EXIT
 
 # Get the arguments
-arg_short=ad:
-arg_long=include-active,directory:
+arg_short=d:
+arg_long=directory:
 arg_opts=$(getopt --options "$arg_short" --long "$arg_long" --name "$0" -- "$@")
 if [ $? != 0 ]; then
   show_syntax
@@ -133,10 +134,6 @@ fi
 eval set -- "$arg_opts"
 while true; do
   case "$1" in
-    -a|--include-active)
-      include_active=true
-      shift
-      ;;
     -b|--backup)
       archivename="$2"
       shift 2
@@ -174,7 +171,6 @@ fi
 # echo "targetdisk=$targetdisk"
 # echo "backupdevice=$backupdevice"
 # echo "archivename=$archivename"
-# echo "include-active=$include_active"
 
 if [ -z $backupdevice ] || [ -z $targetdisk ]; then
   show_syntax
@@ -225,7 +221,7 @@ fi
 root_part=$(findmnt -n -o SOURCE /)
 
 # Selected the partitions to retore
-readarray -t selected < <(select_restore_partitions "$archivepath" "$root_part" "$include_active")   
+readarray -t selected < <(select_restore_partitions "$archivepath" "$root_part")   
 
 # Output selected options
 # echo "Show selections"
