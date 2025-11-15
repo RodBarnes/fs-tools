@@ -2,7 +2,7 @@
 
 # Delete one or more fs_backups
 
-source /usr/local/lib/fs_shared
+source /usr/local/lib/fs_shared.sh
 
 show_syntax() {
   echo "Delete a backup created by fs_backup"

@@ -2,8 +2,8 @@
 
 # Shared code and variables for fs_tools
 
-source /usr/local/lib/display
-source /usr/local/lib/device
+source /usr/local/lib/display.sh
+source /usr/local/lib/device.sh
 
 g_timestamp=$(date +%Y%m%d_%H%M%S)
 g_descfile=comment.txt

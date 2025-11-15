@@ -2,7 +2,7 @@
 
 # List the fs_backkups
 
-source /usr/local/lib/fs_shared
+source /usr/local/lib/fs_shared.sh
 
 show_syntax() {
   echo "List backups created by fs_backup"

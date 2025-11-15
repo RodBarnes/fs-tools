@@ -2,7 +2,7 @@
 
 # Create a backup of one or more partitions from a drive using fsarchiver
 
-source /usr/local/lib/fs_shared
+source /usr/local/lib/fs_shared.sh
 
 show_syntax() {
   echo "Create a backup of selected partitions using fsarchiver."

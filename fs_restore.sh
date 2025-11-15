@@ -2,7 +2,7 @@
 
 # Restore an fs_backup
 
-source /usr/local/lib/fs_shared
+source /usr/local/lib/fs_shared.sh
 
 show_syntax() {
   echo "Restore a backup created by fs_backup"
