@@ -28,7 +28,7 @@ list_archives() {
     fi
     echo "$name: $note" >&2
     ((i++))
-  done < <( ls -1 "$path" )
+  done < <( ls -1 "$path" | sort )
 
   if [ $i -eq 0 ]; then
     printx "There are no backups on $device" >&2

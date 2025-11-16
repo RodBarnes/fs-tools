@@ -18,13 +18,13 @@ select_archive() {
 
   # Get the archives
   while IFS= read -r archive; do
-    if [ -f "$path/fs/$archive/$g_descfile" ]; then
-      comment=$(cat "$path/fs/$archive/$g_descfile")
+    if [ -f "$path/$g_backupdir/$archive/$g_descfile" ]; then
+      comment=$(cat "$path/$g_backupdir/$archive/$g_descfile")
     else
       comment="<no desc>"
     fi
     archives+=("${archive}: $comment")
-  done < <( ls -1 "$path/fs" )
+  done < <( ls -1 "$path/$g_backupdir" | sort )
 
   if [ ${#archives[@]} -eq 0 ]; then
     showx "There are no backups on $device"
