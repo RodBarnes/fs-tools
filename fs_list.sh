@@ -17,21 +17,26 @@ list_archives() {
   # Get the archives
   local archives=() note name
   local i=0
-  while IFS= read -r name; do
-    if [ $i -eq 0 ]; then
-      echo "Backup files on $device" >&2
-    fi
-    if [ -f "$path/$name/$g_descfile" ]; then
-      note=$(cat "$path/$name/$g_descfile")
-    else
-      note="<no desc>"
-    fi
-    echo "$name: $note" >&2
-    ((i++))
-  done < <( ls -1 "$path" | sort )
 
-  if [ $i -eq 0 ]; then
-    printx "There are no backups on $device" >&2
+  if [ ! -d "$path" ]; then
+    showx "There are no backups on $device" >&2
+  else
+    while IFS= read -r name; do
+      if [ $i -eq 0 ]; then
+        echo "Backup files on $device" >&2
+      fi
+      if [ -f "$path/$name/$g_descfile" ]; then
+        note=$(cat "$path/$name/$g_descfile")
+      else
+        note="<no desc>"
+      fi
+      echo "$name: $note" >&2
+      ((i++))
+    done < <( ls -1 "$path" | sort )
+
+    if [ $i -eq 0 ]; then
+      showx "There are no backups on $device" >&2
+    fi
   fi
 }
 
