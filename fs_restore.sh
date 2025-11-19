@@ -6,10 +6,10 @@ source /usr/local/lib/fs_shared.sh
 
 show_syntax() {
   echo "Restore a backup created by fs_backup"
-  echo "Syntax: $0 <backup_device> <target_disk> [-b|--backup]"
+  echo "Syntax: $0 <backup_device> <target_disk> [-a|--archive]"
   echo "Where:  <backup_device> can be a backupdevice designator (e.g., /dev/sdb6), a UUID, filesystem LABEL, or partition UUID"
   echo "        <target_disk> is the disk to which the restore should be applied."
-  echo "        [-b|backup directory] is the name of the specific backup directory to restore."
+  echo "        [-a|archive] is the name of the specific archive to restore."
   exit
 }
 
@@ -128,8 +128,8 @@ select_restore_partitions() {
 trap 'unmount_device_at_path "$g_backuppath"' EXIT
 
 # Get the arguments
-arg_short=d:
-arg_long=directory:
+arg_short=a:
+arg_long=archive:
 arg_opts=$(getopt --options "$arg_short" --long "$arg_long" --name "$0" -- "$@")
 if [ $? != 0 ]; then
   show_syntax
@@ -139,7 +139,7 @@ fi
 eval set -- "$arg_opts"
 while true; do
   case "$1" in
-    -b|--backup)
+    -a|--archive)
       archivename="$2"
       shift 2
       ;;
