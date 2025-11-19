@@ -35,10 +35,6 @@ if [ $# -ge 1 ]; then
   arg="$1"
   device="${arg#/dev/}" # in case it is a device designator
   backupdevice="/dev/$(lsblk -ln -o NAME,UUID,PARTUUID,LABEL | grep "$device" | tr -s ' ' | cut -d ' ' -f1)"
-  if [ ! -b $backupdevice ]; then
-    printx "No valid device was found for '$device'."
-    exit
-  fi
 else
   show_syntax
 fi
@@ -48,9 +44,11 @@ fi
 # echo "backupdevice=$backupdevice"
 # exit
 
-if [[ "$EUID" != 0 ]]; then
-  printx "This must be run as sudo.\n"
-  exit 1
+verify_sudo
+
+if [ ! -b $backupdevice ]; then
+  printx "No valid backup device was found for '$device'."
+  exit
 fi
 
 mount_device_at_path "$backupdevice" "$g_backuppath"

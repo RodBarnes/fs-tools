@@ -9,6 +9,13 @@ g_descfile=comment.txt
 g_backuppath=/mnt/backup
 g_backupdir="fs"
 
+verify_sudo() {
+  if [[ "$EUID" != 0 ]]; then
+    showx "This must be run as sudo.\n"
+    exit 1
+  fi
+}
+
 select_archive() {
   local device=$1 path=$2
   
