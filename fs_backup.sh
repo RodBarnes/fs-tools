@@ -16,6 +16,7 @@ show_syntax() {
 
 backup_partition_table() {
   local disk=$1 path=$2
+
   # Get the partition info
   if fdisk -l "$disk" 2>/dev/null | grep -q '^Disklabel type: gpt'; then
     sgdisk --backup="$path/disk-pt.gpt" "$disk"
@@ -217,6 +218,9 @@ for partition in "${selected[@]}"; do
 done
 
 # Create description in the snapshot directory
+if [ -z $comment ]; then
+  comment="<no desc>"
+fi
 echo "($(sudo du -sh $archivepath | awk '{print $1}')) $comment" > "$archivepath/$g_descfile"
 
 echo "✅ Backup complete."
