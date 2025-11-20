@@ -169,7 +169,7 @@ fi
 
 verify_sudo
 
-if [ ! -b $backupdevice ]; then
+if [[ ! -b $backupdevice ]]; then
   printx "No valid backup device was found for '$device'."
   exit
 fi
@@ -218,7 +218,7 @@ for partition in "${selected[@]}"; do
 done
 
 # Create description in the snapshot directory
-if [ -z $comment ]; then
+if [[ -z $comment ]]; then
   comment="<no desc>"
 fi
 echo "($(sudo du -sh $archivepath | awk '{print $1}')) $comment" > "$archivepath/$g_descfile"
