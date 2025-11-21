@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 
-# List the fs_backkups
+# List the fs-backkups
 
-source /usr/local/lib/fs_shared.sh
+source /usr/local/lib/fs-shared.sh
 
 show_syntax() {
-  echo "List backups created by fs_backup"
+  echo "List backups created by fs-backup"
   echo "Syntax: $0 <backup_device>"
   echo "Where:  <backup_device> can be a device designator (e.g., /dev/sdb6), a UUID, filesystem LABEL, or partition UUID"
   exit

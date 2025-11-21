@@ -1,5 +1,5 @@
-58cfbdf74ff26c2ecb7c7fbe1f3988d706798166c28392acdfb089428a81e98e  /usr/local/lib/fs_shared.sh
-265beb6de2b4d2f3fa9d6878ccaa87816883c14c661e901192ac9d1826932dc0  /usr/local/bin/fs_backup
-2c717ec3ebc8964e06fedf9659797eda2f30633bcfec4293d0807becd92dd35b  /usr/local/bin/fs_delete
-e856fb19e20dd059bab7fc8bd535f4032cffce1edf7adfe85764192c1e02f5f7  /usr/local/bin/fs_list
-57a1f14ace000e1710b51b27f9dcaf625802dbdfb7cd90c72794c355af2d3565  /usr/local/bin/fs_restore
+58cfbdf74ff26c2ecb7c7fbe1f3988d706798166c28392acdfb089428a81e98e  /usr/local/lib/fs-shared.sh
+265beb6de2b4d2f3fa9d6878ccaa87816883c14c661e901192ac9d1826932dc0  /usr/local/bin/fs-backup
+2c717ec3ebc8964e06fedf9659797eda2f30633bcfec4293d0807becd92dd35b  /usr/local/bin/fs-delete
+e856fb19e20dd059bab7fc8bd535f4032cffce1edf7adfe85764192c1e02f5f7  /usr/local/bin/fs-list
+57a1f14ace000e1710b51b27f9dcaf625802dbdfb7cd90c72794c355af2d3565  /usr/local/bin/fs-restore

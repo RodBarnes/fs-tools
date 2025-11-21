@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Shared code and variables for fs_tools
+# Shared code and variables for fs-tools
 
 source /usr/local/lib/display.sh
 source /usr/local/lib/device.sh

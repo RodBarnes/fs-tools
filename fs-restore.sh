@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 
-# Restore an fs_backup
+# Restore an fs-backup
 
-source /usr/local/lib/fs_shared.sh
+source /usr/local/lib/fs-shared.sh
 
 show_syntax() {
-  echo "Restore a backup created by fs_backup"
+  echo "Restore a backup created by fs-backup"
   echo "Syntax: $0 <backup_device> <target_disk> [-a|--archive]"
   echo "Where:  <backup_device> can be a backupdevice designator (e.g., /dev/sdb6), a UUID, filesystem LABEL, or partition UUID"
   echo "        <target_disk> is the disk to which the restore should be applied."

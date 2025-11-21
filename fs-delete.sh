@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 
-# Delete one or more fs_backups
+# Delete one or more fs-backups
 
-source /usr/local/lib/fs_shared.sh
+source /usr/local/lib/fs-shared.sh
 
 show_syntax() {
-  echo "Delete a backup created by fs_backup"
+  echo "Delete a backup created by fs-backup"
   echo "Syntax: $0 <backup_device>"
   echo "Where:  <backup_device> can be a device designator (e.g., /dev/sdb6), a UUID, filesystem LABEL, or partition UUID"
   exit
