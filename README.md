@@ -19,7 +19,7 @@ Lists the archvies (created by `fs-backup`) found on the designated device.
 ## fs-restore.sh
 Usage: `sudo fs-restore <backup_device> <target_disk> [-a|--include-active] [-b|--backup]"`
 
-Restores an archive (created by `fs-backup`) and allows selecting the specific partitions to restore.  Allows for backing up active (online) partitions.  Best use is to run `fs-restore` from a server's recovery partition or live media.
+Restores an archive (created by `fs-backup`) and allows selecting the specific partitions to restore.  Allows for backing up active (online) partitions.  **This must be run from a server's recovery partition or live media.**
 
 ## fs-shared.sh
 Shared functions and variables for `fs-tools`.
