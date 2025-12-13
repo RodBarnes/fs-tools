@@ -109,10 +109,10 @@ select_restore_partitions() {
     # Multiple partitions
     local selected=()
     for i in "${!partitions[@]}"; do
-        read -p "Restore partition ${partitions[i]}? (y/N)" yn
-        if [[ $yn == "y" || $yn == "Y" ]]; then
-          selected+=("${partitions[i]}")
-        fi
+      read -p "Restore partition ${partitions[i]}? (y/N)" yn
+      if [[ $yn == "y" || $yn == "Y" ]]; then
+        selected+=("${partitions[i]}")
+      fi
     done
     # Output the selections
     for i in "${!selected[@]}"; do
