@@ -51,7 +51,7 @@ restore_filesystem() {
   fi
 
   # Check if partition is mounted
-  local mount=$(mountpoint -q $path)
+  local mount=$(findmnt -n -o TARGET "$device")
   if [[ -n "$mount" ]]; then
     showx "Error: $device is mounted at $mount."
     readx -p "Proceed and unmount it first? [y/N] " yn
