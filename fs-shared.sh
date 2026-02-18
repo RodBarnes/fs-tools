@@ -22,8 +22,9 @@ get_device() {
 
 select_archive() {
   local device=$1 path=$2
-  
+
   local name archives=()
+  local comment
 
   # Get the archives
   while IFS= read -r archive; do
