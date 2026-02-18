@@ -56,7 +56,7 @@ fi
 verify_sudo
 
 if [[ ! -b $backupdevice ]]; then
-  printx "No valid backup device was found for '$device'."
+  printx "No valid backup device was found for '$backupdevice'."
   exit
 fi
 
