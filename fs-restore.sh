@@ -161,11 +161,6 @@ else
   show_syntax
 fi
 
-# echo "restoredevice=$restoredevice"
-# echo "backupdevice=$backupdevice"
-# echo "archivename=$archivename"
-# exit
-
 verify_sudo
 
 if [[ ! -b $backupdevice ]]; then
@@ -219,14 +214,7 @@ fi
 root_part=$(findmnt -n -o SOURCE /)
 
 # Selected the partitions to retore
-readarray -t selected < <(select_restore_partitions "$archivepath" "$root_part")   
-
-# # Output selected options
-# echo "Show selections"
-# for i in "${!selected[@]}"; do
-#     echo "${selected[i]}"
-# done
-# read
+readarray -t selected < <(select_restore_partitions "$archivepath" "$root_part")
 
 if [[ "${#selected[@]}" > 0 ]]; then
   echo "Restoring partition table to $restoredevice ..."

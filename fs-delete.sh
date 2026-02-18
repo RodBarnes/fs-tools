@@ -37,11 +37,6 @@ else
   show_syntax
 fi
 
-# echo "backuppath=$g_backuppath"
-# echo "backupdir=$g_backupdir"
-# echo "backupdevice=$backupdevice"
-# exit
-
 verify_sudo
 
 if [[ ! -b $backupdevice ]]; then

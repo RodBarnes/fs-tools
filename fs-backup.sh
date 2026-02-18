@@ -45,16 +45,6 @@ backup_filesystem() {
 
   local suffix=${partfs##$sourcedisk}
   local fsa_file="$path/$suffix.fsa"
-  
-  # show "sourcedisk##*/=${sourcedisk##*/}"
-  # show "partition_device=$partition_device"
-  # show "fsa_file=$fsa_file"
-  # show "sourcedisk=$sourcedisk"
-  # show "path=$path"
-  # show "partition=$partition"
-  # show "suffix=$suffix"
-  # show "sourcedisk##*/=${sourcedisk##*/}"
-  # read
 
   local options="-v -j$(nproc) -Z3"
   if $mounted_rw; then
@@ -73,7 +63,7 @@ select_backup_partitions() {
   # Get partitions, excluding unsupported filesystems and optionally the active partition
 
   # show "disk=$disk, root=$root, active=$active"
-  
+
   local supported_fstypes="ext2|ext3|ext4|xfs|btrfs|ntfs|vfat|fat16|fat32|reiserfs"
   local partitions=()
   while IFS= read -r partition; do
@@ -92,12 +82,6 @@ select_backup_partitions() {
     showx "No supported filesystems found on $disk"
     exit 2
   fi
-
-  # show "partitions..."
-  # for i in "${!partitions[@]}"; do
-  #     show "${partitions[i]}"
-  # done
-  # read
 
   # Prompt the user
   local selected=()
@@ -158,15 +142,6 @@ else
   show_syntax
 fi
 
-# echo "backuppath=$g_backuppath"
-# echo "backupdir=$g_backupdir"
-# echo "backupdevice=$backupdevice"
-# echo "sourcedisk=$sourcedisk"
-# echo "archivename=$archivename"
-# echo "include-active=$include_active"
-# echo "comment=$comment"
-# exit
-
 verify_sudo
 
 if [[ ! -b $backupdevice ]]; then
@@ -186,13 +161,6 @@ root_part=$(findmnt -n -o SOURCE /)
 
 # Selected the partitions to backup
 readarray -t selected < <(select_backup_partitions "$sourcedisk" "$root_part" "$include_active")
-
-# Output selected options
-# echo "Show selections"
-# for i in "${!selected[@]}"; do
-#     echo "${selected[i]}"
-# done
-# read
 
 if [[ ${#selected[@]} -eq 0 ]]; then
   printx "Error: No valid partitions selected"

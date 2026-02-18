@@ -53,9 +53,6 @@ else
   show_syntax
 fi
 
-# echo "backupdevice=$backupdevice"
-# exit
-
 verify_sudo
 
 if [[ ! -b $backupdevice ]]; then
