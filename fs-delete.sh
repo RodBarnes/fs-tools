@@ -20,7 +20,7 @@ delete_archive() {
     show "Operation cancelled."
   else
     show "Deleting '$name'"
-    sudo rm -Rf $path/$name
+    sudo rm -Rf "$path/$name"
   fi
 }
 
@@ -48,7 +48,7 @@ mount_device_at_path "$backupdevice" "$g_backuppath"
 
 while true; do
   archivename=$(select_archive "$backupdevice" "$g_backuppath")
-  if [ ! -z $archivename ]; then
+  if [[ -n $archivename ]]; then
     delete_archive "$g_backuppath/$g_backupdir" "$archivename"
   else
     exit
