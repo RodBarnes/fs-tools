@@ -14,16 +14,16 @@ show_syntax() {
 }
 
 restore_partition_table() {
-  local disk=$1 path=$2
+  local disk=$1 path=$2 type=$3
 
   # Restore partition table
-  if [[ "$pt_type" == "gpt" ]]; then
+  if [[ "$type" == "gpt" ]]; then
     if [[ ! -f "$path/disk-pt.gpt" ]]; then
       showx "Error: $path/disk-pt.gpt not found."
       exit 1
     fi
     sgdisk --load-backup="$path/disk-pt.gpt" "$disk" &>> "$g_logfile"
-  elif [[ "$pt_type" == "dos" ]]; then
+  elif [[ "$type" == "dos" ]]; then
     if [[ ! -f "$path/disk-pt.sf" ]]; then
       showx "Error: $path/disk-pt.sf not found."
       exit 1
@@ -43,11 +43,11 @@ restore_filesystem() {
 
   if [[ ! -f "$filepath" ]]; then
     showx "Error: $filepath not found, skipping $device"
-    continue
+    return
   fi
   if [[ ! -b "$device" ]]; then
     showx "Error: $device not a block device, skipping"
-    continue
+    return
   fi
 
   # Check if partition is mounted
@@ -218,7 +218,7 @@ readarray -t selected < <(select_restore_partitions "$archivepath" "$root_part")
 
 if [[ "${#selected[@]}" > 0 ]]; then
   echo "Restoring partition table to $restoredevice ..."
-  restore_partition_table "$restoredevice" "$archivepath"
+  restore_partition_table "$restoredevice" "$archivepath" "$pt_type"
 
   for partition in "${selected[@]}"; do
     restore_filesystem "$partition" "$archivepath" "$root_part"
