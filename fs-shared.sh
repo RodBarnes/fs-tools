@@ -28,7 +28,7 @@ select_archive() {
 
   # Get the archives
   while IFS= read -r archive; do
-    if [ -f "$path/$g_backupdir/$archive/$g_descfile" ]; then
+    if [[ -f $path/$g_backupdir/$archive/$g_descfile ]]; then
       comment=$(cat "$path/$g_backupdir/$archive/$g_descfile")
     else
       comment="<no desc>"
@@ -36,7 +36,7 @@ select_archive() {
     archives+=("${archive}: $comment")
   done < <( ls -1 "$path/$g_backupdir" | sort )
 
-  if [ ${#archives[@]} -eq 0 ]; then
+  if [[ ${#archives[@]} -eq 0 ]]; then
     showx "There are no backups on $device"
   else
     show "Listing backup files..."
@@ -48,7 +48,7 @@ select_archive() {
     COLUMNS=1
     select selection in "${archives[@]}" "Cancel"; do
       if [[ "$REPLY" =~ ^[0-9]+$ && "$REPLY" -ge 1 && "$REPLY" -le $count ]]; then
-        case ${selection} in
+        case "${selection}" in
           "Cancel")
             # If the user decides to cancel...
             break
@@ -64,5 +64,5 @@ select_archive() {
     done
   fi
 
-  echo $name
+  echo "$name"
 }
