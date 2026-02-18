@@ -68,7 +68,7 @@ restore_filesystem() {
   fi
   show "Restoring $filepath -> $device"
   fsarchiver restfs "$filepath" id=0,dest="$device" &>> "$g_logfile"
-  if [ $? -ne 0 ]; then
+  if [[ $? -ne 0 ]]; then
     showx "Error: Failed to restore $device"
   fi
 }
@@ -103,7 +103,7 @@ select_restore_partitions() {
     exit 3
   elif [[ ${#partitions[@]} -eq 1 ]]; then
     # One partition
-    echo ${partitions[0]}
+    echo "${partitions[0]}"
     return
   else
     # Multiple partitions
@@ -168,17 +168,17 @@ if [[ ! -b $backupdevice ]]; then
   exit
 fi
 
-if [[ ! -b "$restoredevice" ]]; then
+if [[ ! -b $restoredevice ]]; then
   printx "No valid restore device was found for '$restoredevice'."
   exit
 fi
 
 mount_device_at_path "$backupdevice" "$g_backuppath"
 
-if [ -z $archivename ]; then
+if [[ -z $archivename ]]; then
   echo "Select an archive..."
   archivename=$(select_archive "$backupdevice" "$g_backuppath")
-  if [ -z $archivename ]; then
+  if [[ -z $archivename ]]; then
     show "Operation cancelled"
     exit
   else
@@ -216,7 +216,7 @@ root_part=$(findmnt -n -o SOURCE /)
 # Selected the partitions to retore
 readarray -t selected < <(select_restore_partitions "$archivepath" "$root_part")
 
-if [[ "${#selected[@]}" > 0 ]]; then
+if [[ "${#selected[@]}" -gt 0 ]]; then
   echo "Restoring partition table to $restoredevice ..."
   restore_partition_table "$restoredevice" "$archivepath" "$pt_type"
 
