@@ -5,7 +5,7 @@ Using `boss` as the example target system:
 
 Then, `ssh boss` and:
 
-`sudo chown root:root ts-*.sh && sudo mv ts-*.sh /usr/local/lib`
+`sudo chown root:root fs-*.sh && sudo mv fs-*.sh /usr/local/lib`
 
 # Pogram files
 **NOTE**: Change the destination path as needed.
@@ -16,4 +16,4 @@ Then, `ssh boss` and:
 
  Then, `ssh boss` and:
 
-`sudo chown root:root ts-*.sh && sudo chmod +x ts-*.sh && for file in ts-*.sh; do sudo mv "$file" "/usr/local/sbin/${file%.sh}"; done`
+`sudo chown root:root fs-*.sh && sudo chmod +x fs-*.sh && for file in fs-*.sh; do sudo mv "$file" "/usr/local/sbin/${file%.sh}"; done`
