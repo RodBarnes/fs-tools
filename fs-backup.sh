@@ -28,7 +28,7 @@ backup_partition_table() {
 }
 
 backup_filesystem() {
-  local partfs=$1 path=$2
+  local partfs=$1 path=$2 disk=$3
 
   # Detect if mounted RW
   local partition_device="/dev/$partfs"
@@ -43,7 +43,7 @@ backup_filesystem() {
     fi
   fi
 
-  local suffix=${partfs##$sourcedisk}
+  local suffix=${partfs##$disk}
   local fsa_file="$path/$suffix.fsa"
 
   local options="-v -j$(nproc) -Z3"
@@ -145,11 +145,11 @@ fi
 verify_sudo
 
 if [[ ! -b $backupdevice ]]; then
-  printx "No valid backup device was found for '$device'."
+  printx "No valid backup device was found for '$backupdevice'."
   exit
 fi
 
-if [[ ! -b "$sourcedisk" ]]; then
+if [[ ! -b $sourcedisk ]]; then
   printx "No valid source device was found for '$sourcedisk'."
   exit
 fi
@@ -182,7 +182,7 @@ backup_partition_table "$sourcedisk" "$archivepath"
 
 echo "Backing up selected partitions to $archivepath/ ..."
 for partition in "${selected[@]}"; do
-  backup_filesystem "$partition" "$archivepath"
+  backup_filesystem "$partition" "$archivepath" "$sourcedisk"
 done
 
 # Create description in the snapshot directory
