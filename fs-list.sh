@@ -40,11 +40,15 @@ list_archives() {
   fi
 }
 
+cleanup() {
+  unmount_device_at_path "$g_backuppath"
+}
+
 # --------------------
 # ------- MAIN -------
 # --------------------
 
-trap 'unmount_device_at_path "$g_backuppath"' EXIT
+trap 'cleanup' EXIT
 
 # Get the arguments
 if [ $# -ge 1 ]; then
