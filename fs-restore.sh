@@ -10,6 +10,7 @@ show_syntax() {
   echo "Where:  <backup_device> can be a backupdevice designator (e.g., /dev/sdb6), a UUID, filesystem LABEL, or partition UUID"
   echo "        <target_disk> is the disk to which the restore should be applied."
   echo "        [-a|archive] is the name of the specific archive to restore."
+  echo "        [-v|--verbose] will display the output log in process."
   exit
 }
 
@@ -121,15 +122,20 @@ select_restore_partitions() {
   fi
 }
 
+cleanup() {
+  unmount_device_at_path "$g_backuppath"
+  [[ -n "$tail_pid" ]] && kill "$tail_pid" 2>/dev/null
+}
+
 # --------------------
 # ------- MAIN -------
 # --------------------
 
-trap 'unmount_device_at_path "$g_backuppath"' EXIT
+trap 'cleanup' EXIT
 
 # Get the arguments
-arg_short=a:
-arg_long=archive:
+arg_short=va:
+arg_long=verbose,archive:
 arg_opts=$(getopt --options "$arg_short" --long "$arg_long" --name "$0" -- "$@")
 if [ $? != 0 ]; then
   show_syntax
@@ -142,6 +148,10 @@ while true; do
     -a|--archive)
       archivename="$2"
       shift 2
+      ;;
+    -v|--verbose)
+      verbose=true
+      shift
       ;;
     --) # End of options
       shift
@@ -195,6 +205,12 @@ fi
 # Initialize the log file
 g_logfile="/tmp/$(basename $0)_$archivename.log"
 echo -n &> "$g_logfile"
+
+# Start tailing if requested
+if [[ -n "$verbose" ]]; then
+  tail -f "$g_logfile" &
+  tail_pid=$!
+fi
 
 echo "Restoring '$archivename' to '$restoredevice'..."
 

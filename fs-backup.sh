@@ -11,6 +11,7 @@ show_syntax() {
   echo "        <source_disk> is the disk containing the partitions to be included in the backup."
   echo "        [-a|--include-active] is an option to force inclusion of partitions that are active; i.e., online."
   echo "        [-c|--comment \"comment\"] is the disk containing the partitions to be included in the backup."
+  echo "        [-v|--verbose] will display the output log in process."
   exit
 }
 
@@ -98,15 +99,20 @@ select_backup_partitions() {
   done
 }
 
+cleanup() {
+  unmount_device_at_path "$g_backuppath"
+  [[ -n "$tail_pid" ]] && kill "$tail_pid" 2>/dev/null
+}
+
 # --------------------
 # ------- MAIN -------
 # --------------------
 
-trap 'unmount_device_at_path "$g_backuppath"' EXIT
+trap 'cleanup' EXIT
 
 # Get the arguments
-arg_short=ac:
-arg_long=include-active,comment:
+arg_short=avc:
+arg_long=include-active,verbose,comment:
 arg_opts=$(getopt --options "$arg_short" --long "$arg_long" --name "$0" -- "$@")
 if [ $? != 0 ]; then
   show_syntax
@@ -123,6 +129,10 @@ while true; do
     -c|--comment)
       comment="$2"
       shift 2
+      ;;
+    -v|--verbose)
+      verbose=true
+      shift
       ;;
     --) # End of options
       shift
@@ -172,6 +182,12 @@ archivename="$(date +%Y%m%d_%H%M%S)_$(hostname -s)"
 # Initialize the log file
 g_logfile="/tmp/$(basename $0)_$archivename.log"
 echo -n &> "$g_logfile"
+
+# Start tailing if requested
+if [[ -n "$verbose" ]]; then
+  tail -f "$g_logfile" &
+  tail_pid=$!
+fi
 
 # Create backup directory and save partition table
 archivepath="$g_backuppath/$g_backupdir/$archivename"
