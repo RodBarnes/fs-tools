@@ -21,10 +21,15 @@ get_device() {
 }
 
 select_archive() {
-  local device=$1 path=$2
+  local device=$1
+  local path=$2
 
-  local name archives=()
+  local name
+  local archive
+  local archives=()
   local comment
+  local count
+  local selection
 
   # Get the archives
   while IFS= read -r archive; do
@@ -42,7 +47,7 @@ select_archive() {
     show "Listing backup files..."
 
     # Get the count of options and increment to include cancel
-    local count="${#archives[@]}"
+    count="${#archives[@]}"
     ((count++))
 
     COLUMNS=1

@@ -16,7 +16,8 @@ show_syntax() {
 }
 
 backup_partition_table() {
-  local disk=$1 path=$2
+  local disk=$1
+  local path=$2
 
   # Get the partition info
   if fdisk -l "$disk" 2>/dev/null | grep -q '^Disklabel type: gpt'; then
@@ -29,12 +30,19 @@ backup_partition_table() {
 }
 
 backup_filesystem() {
-  local partfs=$1 path=$2 disk=$3
+  local partfs=$1
+  local path=$2
+  local disk=$3
 
-  # Detect if mounted RW
+  local mount_point
   local partition_device="/dev/$partfs"
   local mounted_rw=false
-  local mount_point=$(awk -v part="$partition_device" '$1 == part {print $2}' /proc/mounts)
+  local suffix=${partfs##$disk}
+  local fsa_file="$path/$suffix.fsa"
+  local options="-v -j$(nproc) -Z3"
+
+  # Detect if mounted RW
+  mount_point=$(awk -v part="$partition_device" '$1 == part {print $2}' /proc/mounts)
   if [[ -n "$mount_point" ]]; then
     if awk -v part="$partition_device" '$1 == part {print $4}' /proc/mounts | grep -q '^rw'; then
       mounted_rw=true
@@ -44,10 +52,6 @@ backup_filesystem() {
     fi
   fi
 
-  local suffix=${partfs##$disk}
-  local fsa_file="$path/$suffix.fsa"
-
-  local options="-v -j$(nproc) -Z3"
   if $mounted_rw; then
     options="$options -A"
   fi
@@ -60,15 +64,21 @@ backup_filesystem() {
 }
 
 select_backup_partitions() {
-  local disk=$1 root=$2 active=$3
-  # Get partitions, excluding unsupported filesystems and optionally the active partition
+  local disk=$1
+  local root=$2
+  local active=$3
 
-  # show "disk=$disk, root=$root, active=$active"
+  # Get partitions, excluding unsupported filesystems and optionally the active partition
 
   local supported_fstypes="ext2|ext3|ext4|xfs|btrfs|ntfs|vfat|fat16|fat32|reiserfs"
   local partitions=()
+  local fstype
+  local partition
+  local selected=()
+  local yn
+
   while IFS= read -r partition; do
-    local fstype=$(lsblk -fno fstype "$partition" | head -n1)
+    fstype=$(lsblk -fno fstype "$partition" | head -n1)
     if [[ -n "$fstype" && $fstype =~ ^($supported_fstypes)$ ]]; then
       if [[ -z $active && "$partition" == "$root" ]]; then
         # Skip active partitions unless user specifically asks to include them
@@ -85,7 +95,6 @@ select_backup_partitions() {
   fi
 
   # Prompt the user
-  local selected=()
   for i in "${!partitions[@]}"; do
     read -p "Backup partition ${partitions[i]}? (y/N)" yn
     if [[ $yn == "y" || $yn == "Y" ]]; then

@@ -12,7 +12,10 @@ show_syntax() {
 }
 
 delete_archive() {
-  local path=$1 name=$2
+  local path=$1
+  local name=$2
+
+  local yn
 
   showx "This will completely DELETE the archive '$name' and is not recoverable."
   readx "Are you sure you want to proceed? (y/N) " yn

@@ -15,7 +15,9 @@ show_syntax() {
 }
 
 restore_partition_table() {
-  local disk=$1 path=$2 type=$3
+  local disk=$1
+  local path=$2
+  local type=$3
 
   # Restore partition table
   if [[ "$type" == "gpt" ]]; then
@@ -37,10 +39,14 @@ restore_partition_table() {
 }
 
 restore_filesystem() {
-  local part=$1 path=$2 root=$3
+  local part=$1
+  local path=$2
+  local root=$3
 
   local device="/dev/$part"
   local filepath="$path/$part.fsa"
+  local mount
+  local yn
 
   if [[ ! -f "$filepath" ]]; then
     showx "Error: $filepath not found, skipping $device"
@@ -52,7 +58,7 @@ restore_filesystem() {
   fi
 
   # Check if partition is mounted
-  local mount=$(findmnt -n -o TARGET "$device")
+  mount=$(findmnt -n -o TARGET "$device")
   if [[ -n "$mount" ]]; then
     showx "Error: $device is mounted at $mount."
     readx -p "Proceed and unmount it first? [y/N] " yn
@@ -64,6 +70,7 @@ restore_filesystem() {
       showx "Skipping restoration of $device"
     fi
   fi
+
   if [[ "$device" == "$root" ]]; then
     showx "Warning: Restoring active root partition $device may cause system instability"
   fi
@@ -75,21 +82,29 @@ restore_filesystem() {
 }
 
 select_restore_partitions() {
-  local path=$1 root=$2
+  local path=$1
+  local root=$2
+
+  local fsa_files
+  local partitions=()
+  local filename
+  local partname
+  local device
+  local selected=()
+  local yn
 
   # Find available .fsa files
-  local fsa_files=($(ls -1 "$path"/*.fsa 2>/dev/null))
+  fsa_files=($(ls -1 "$path"/*.fsa 2>/dev/null))
   if [[ ${#fsa_files[@]} -eq 0 ]]; then
     showx "Error: No .fsa files found in $path"
     exit 3
   fi
 
   # Filter .fsa files, excluding the active partition
-  local partitions=()
   for i in "${!fsa_files[@]}"; do
-    local filename=${fsa_files[i]}
-    local partname=$(basename "$filename" .fsa)
-    local device="/dev/$partname"
+    filename=${fsa_files[i]}
+    partname=$(basename "$filename" .fsa)
+    device="/dev/$partname"
     if [[ $device == $root ]]; then
       showx "Note: Skipping $partname because it is the currently active partition."
       showx "To restore this partition, run this program from another partition."
@@ -108,7 +123,6 @@ select_restore_partitions() {
     return
   else
     # Multiple partitions
-    local selected=()
     for i in "${!partitions[@]}"; do
       read -p "Restore partition ${partitions[i]}? (y/N)" yn
       if [[ $yn == "y" || $yn == "Y" ]]; then

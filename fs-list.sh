@@ -12,10 +12,13 @@ show_syntax() {
 }
 
 list_archives() {
-  local device=$1 path=$2
+  local device=$1
+  local path=$2
 
   # Get the archives
-  local archives=() note name
+  local archives=()
+  local comment
+  local name
   local i=0
 
   if [[ ! -d $path ]]; then
@@ -26,11 +29,11 @@ list_archives() {
         echo "Backup files on $device" >&2
       fi
       if [[ -f $path/$name/$g_descfile ]]; then
-        note=$(cat "$path/$name/$g_descfile")
+        comment=$(cat "$path/$name/$g_descfile")
       else
-        note="<no desc>"
+        comment="<no desc>"
       fi
-      echo "$name: $note" >&2
+      echo "$name: $comment" >&2
       ((i++))
     done < <( ls -1 "$path" | sort )
 
