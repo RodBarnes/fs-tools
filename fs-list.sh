@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# List the fs-backkups
+# List the fs-backups
 
 source /usr/local/lib/fs-shared.sh
 
@@ -15,32 +15,43 @@ list_archives() {
   local device=$1
   local path=$2
 
-  # Get the archives
-  local archives=()
   local comment
+  local hostname
   local name
   local i=0
+  local entries=()
+  local infopath
+  local hostnamedir
 
-  if [[ ! -d $path ]]; then
-    showx "There are no backups on $device" >&2
-  else
+  # Collect all entries as "hostname|archivename|comment" for sorting by hostname then name
+  while IFS= read -r hostnamedir; do
     while IFS= read -r name; do
-      if [[ $i -eq 0 ]]; then
-        echo "Backup files on $device" >&2
-      fi
-      if [[ -f $path/$name/$g_descfile ]]; then
-        comment=$(cat "$path/$name/$g_descfile")
+      infopath="$hostnamedir/$name/$g_infofile"
+      if [ -f "$infopath" ]; then
+        hostname=$(jq -r '.hostname' "$infopath")
+        comment=$(jq -r '.comment' "$infopath")
       else
+        hostname="unknown"
         comment="<no desc>"
       fi
-      echo "$name: $comment" >&2
-      ((i++))
-    done < <( ls -1 "$path" | sort )
+      entries+=("$hostname|$name|$comment")
+    done < <( find "$hostnamedir" -mindepth 1 -maxdepth 1 -type d | xargs -I{} basename {} | sort )
+  done < <( find "$path" -mindepth 1 -maxdepth 1 -type d | sort )
 
-    if [[ $i -eq 0 ]]; then
-      showx "There are no backups on $device" >&2
-    fi
+  if [ ${#entries[@]} -eq 0 ]; then
+    showx "There are no backups on $device"
+    return
   fi
+
+  show_device_space "$device"
+
+  show "Backup files:"
+
+  # Sort by hostname then archive name and display
+  while IFS='|' read -r hostname name comment; do
+    show "$hostname  $name: $comment"
+    ((i++))
+  done < <( printf '%s\n' "${entries[@]}" | sort )
 }
 
 cleanup() {
@@ -69,4 +80,3 @@ fi
 
 mount_device_at_path "$backupdevice" "$g_backuppath"
 list_archives "$backupdevice" "$g_backuppath/$g_backupdir"
-

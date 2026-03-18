@@ -6,10 +6,10 @@ source /usr/local/lib/fs-shared.sh
 
 show_syntax() {
   echo "Restore a backup created by fs-backup"
-  echo "Syntax: $0 <backup_device> <target_disk> [-a|--archive]"
+  echo "Syntax: $0 <backup_device> <target_disk> [-a|--archive archivename]"
   echo "Where:  <backup_device> can be a backupdevice designator (e.g., /dev/sdb6), a UUID, filesystem LABEL, or partition UUID"
   echo "        <target_disk> is the disk to which the restore should be applied."
-  echo "        [-a|archive] is the name of the specific archive to restore."
+  echo "        [-a|--archive archivename] is the name of the specific archive to restore."
   echo "        [-v|--verbose] will display the output log in process."
   exit
 }
@@ -19,7 +19,6 @@ restore_partition_table() {
   local path=$2
   local type=$3
 
-  # Restore partition table
   if [[ "$type" == "gpt" ]]; then
     if [[ ! -f "$path/disk-pt.gpt" ]]; then
       showx "Error: $path/disk-pt.gpt not found."
@@ -34,7 +33,6 @@ restore_partition_table() {
     sfdisk "$disk" < "$path/disk-pt.sf" &>> "$g_logfile"
   fi
 
-  # Inform kernel of partition table changes
   partprobe "$disk"
 }
 
@@ -57,7 +55,6 @@ restore_filesystem() {
     return
   fi
 
-  # Check if partition is mounted
   mount=$(findmnt -n -o TARGET "$device")
   if [[ -n "$mount" ]]; then
     showx "Error: $device is mounted at $mount."
@@ -93,14 +90,12 @@ select_restore_partitions() {
   local selected=()
   local yn
 
-  # Find available .fsa files
   fsa_files=($(ls -1 "$path"/*.fsa 2>/dev/null))
   if [[ ${#fsa_files[@]} -eq 0 ]]; then
     showx "Error: No .fsa files found in $path"
     exit 3
   fi
 
-  # Filter .fsa files, excluding the active partition
   for i in "${!fsa_files[@]}"; do
     filename=${fsa_files[i]}
     partname=$(basename "$filename" .fsa)
@@ -114,22 +109,18 @@ select_restore_partitions() {
   done
 
   if [[ ${#partitions[@]} -eq 0 ]]; then
-    # No partitions
     showx "Error: No valid partitions available for restore."
     exit 3
   elif [[ ${#partitions[@]} -eq 1 ]]; then
-    # One partition
     echo "${partitions[0]}"
     return
   else
-    # Multiple partitions
     for i in "${!partitions[@]}"; do
       read -p "Restore partition ${partitions[i]}? (y/N)" yn
       if [[ $yn == "y" || $yn == "Y" ]]; then
         selected+=("${partitions[i]}")
       fi
     done
-    # Output the selections
     for i in "${!selected[@]}"; do
       echo "${selected[i]}"
     done
@@ -199,63 +190,90 @@ fi
 
 mount_device_at_path "$backupdevice" "$g_backuppath"
 
-if [[ -z $archivename ]]; then
-  echo "Select an archive..."
-  archivename=$(select_archive "$backupdevice" "$g_backuppath")
-  if [[ -z $archivename ]]; then
-    show "Operation cancelled"
-    exit
+# If an archive name was specified, find which hostname subdir contains it
+if [ -n "$archivename" ]; then
+  matched_subpath=$(find "$g_backuppath/$g_backupdir" -mindepth 2 -maxdepth 2 -type d -name "$archivename" | head -1)
+  if [ -z "$matched_subpath" ]; then
+    printx "There is no archive '$archivename' on '$backupdevice'."
+    unset archivename
   else
-    archivepath="$g_backuppath/$g_backupdir/$archivename"
+    archivesubpath="${matched_subpath#$g_backuppath/$g_backupdir/}"
   fi
-else
-  archivepath="$g_backuppath/$g_backupdir/$archivename"
-  if [[ ! -d "$archivepath" ]]; then
-    printx "Error: '$archivename' not a found on '$backupdevice'."
+fi
+
+# Since an archive was not specified, present a list for selection
+if [ -z "$archivename" ]; then
+  # select_archive returns "hostname/archivename"
+  archivesubpath=$(select_archive "$backupdevice" "$g_backuppath/$g_backupdir")
+fi
+
+if [ -n "$archivesubpath" ]; then
+
+  archivepath="$g_backuppath/$g_backupdir/$archivesubpath"
+  archivename="${archivesubpath##*/}"
+
+  # Initialize the log file
+  g_logfile="/tmp/$(basename $0)_$archivename.log"
+  echo -n &> "$g_logfile"
+
+  # Start tailing if requested
+  if [[ -n "$verbose" ]]; then
+    tail -f "$g_logfile" &
+    tail_pid=$!
+  fi
+
+  # Read metadata from info.json
+  infofile="$archivepath/$g_infofile"
+  if [[ ! -f "$infofile" ]]; then
+    printx "Error: $infofile not found."
     exit 2
   fi
-fi
+  hostname=$(jq -r '.hostname' "$infofile")
 
-# Initialize the log file
-g_logfile="/tmp/$(basename $0)_$archivename.log"
-echo -n &> "$g_logfile"
+  # Sanity check: warn if backup was made on a different machine
+  backup_machine_id=$(jq -r '.machine_id' "$infofile")
+  current_machine_id=$(cat /etc/machine-id)
+  if [ "$backup_machine_id" != "$current_machine_id" ]; then
+    showx "WARNING: This backup was made on a different machine (hostname: $hostname)."
+    showx "Restoring it to this machine may produce an unbootable or misconfigured system."
+    readx "Do you want to proceed anyway? (y/N)" yn
+    if [[ $yn != "y" && $yn != "Y" ]]; then
+      show "Operation cancelled."
+      exit
+    fi
+  fi
 
-# Start tailing if requested
-if [[ -n "$verbose" ]]; then
-  tail -f "$g_logfile" &
-  tail_pid=$!
-fi
+  echo "Restoring '$hostname' $archivename to '$restoredevice'..."
 
-echo "Restoring '$archivename' to '$restoredevice'..."
+  # Check for partition table backup
+  if [[ ! -f "$archivepath/pt-type" ]]; then
+    printx "Error: $archivepath/pt-type not found."
+    exit 3
+  fi
 
-# Check for partition table backup
-if [[ ! -f "$archivepath/pt-type" ]]; then
-  printx "Error: $archivepath/pt-type not found."
-  exit 3
-fi
+  pt_type=$(cat "$archivepath/pt-type")
+  if [[ "$pt_type" != "gpt" && "$pt_type" != "dos" ]]; then
+    printx "Error: Invalid partition table type in $archivepath/pt-type: $pt_type"
+    exit 3
+  fi
 
-pt_type=$(cat "$archivepath/pt-type")
-if [[ "$pt_type" != "gpt" && "$pt_type" != "dos" ]]; then
-  printx "Error: Invalid partition table type in $archivepath/pt-type: $pt_type"
-  exit 3
-fi
+  # Get the active root partition
+  root_part=$(findmnt -n -o SOURCE /)
 
-# Get the active root partition
-root_part=$(findmnt -n -o SOURCE /)
+  # Select the partitions to restore
+  readarray -t selected < <(select_restore_partitions "$archivepath" "$root_part")
 
-# Selected the partitions to retore
-readarray -t selected < <(select_restore_partitions "$archivepath" "$root_part")
+  if [[ "${#selected[@]}" -gt 0 ]]; then
+    echo "Restoring partition table to $restoredevice ..."
+    restore_partition_table "$restoredevice" "$archivepath" "$pt_type"
 
-if [[ "${#selected[@]}" -gt 0 ]]; then
-  echo "Restoring partition table to $restoredevice ..."
-  restore_partition_table "$restoredevice" "$archivepath" "$pt_type"
+    for partition in "${selected[@]}"; do
+      restore_filesystem "$partition" "$archivepath" "$root_part"
+    done
 
-  for partition in "${selected[@]}"; do
-    restore_filesystem "$partition" "$archivepath" "$root_part"
-  done
-
-  echo "✅ Restoration complete."
-  echo "Details of the operation can be viewed in the file $g_logfile"
-else
-  printx "No partitions were selected for restore."
+    echo "✅ Restoration complete."
+    echo "Details of the operation can be viewed in the file $g_logfile"
+  else
+    printx "No partitions were selected for restore."
+  fi
 fi

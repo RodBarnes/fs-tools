@@ -13,8 +13,10 @@ show_syntax() {
 
 delete_archive() {
   local path=$1
-  local name=$2
+  local subpath=$2
 
+  local archive_dir="$path/$subpath"
+  local name="${subpath##*/}"
   local yn
 
   showx "This will completely DELETE the archive '$name' and is not recoverable."
@@ -23,7 +25,7 @@ delete_archive() {
     show "Operation cancelled."
   else
     show "Deleting '$name'"
-    sudo rm -Rf "$path/$name"
+    rm -Rf "$archive_dir"
   fi
 }
 
@@ -53,14 +55,14 @@ fi
 
 mount_device_at_path "$backupdevice" "$g_backuppath"
 
+show_device_space "$backupdevice"
+
 while true; do
-  archivename=$(select_archive "$backupdevice" "$g_backuppath")
-  if [[ -n $archivename ]]; then
-    delete_archive "$g_backuppath/$g_backupdir" "$archivename"
+  # select_archive returns "hostname/archivename"
+  archivesubpath=$(select_archive "$backupdevice" "$g_backuppath/$g_backupdir")
+  if [[ -n $archivesubpath ]]; then
+    delete_archive "$g_backuppath/$g_backupdir" "$archivesubpath"
   else
     exit
   fi
 done
-
-
-

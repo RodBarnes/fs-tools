@@ -10,7 +10,7 @@ show_syntax() {
   echo "Where:  <backup_device> can be a backupdevice designator (e.g., /dev/sdb6), a UUID, filesystem LABEL, or partition UUID"
   echo "        <source_disk> is the disk containing the partitions to be included in the backup."
   echo "        [-a|--include-active] is an option to force inclusion of partitions that are active; i.e., online."
-  echo "        [-c|--comment \"comment\"] is the disk containing the partitions to be included in the backup."
+  echo "        [-c|--comment \"comment\"] is a quote-bounded comment for the archive."
   echo "        [-v|--verbose] will display the output log in process."
   exit
 }
@@ -68,8 +68,6 @@ select_backup_partitions() {
   local root=$2
   local active=$3
 
-  # Get partitions, excluding unsupported filesystems and optionally the active partition
-
   local supported_fstypes="ext2|ext3|ext4|xfs|btrfs|ntfs|vfat|fat16|fat32|reiserfs"
   local partitions=()
   local fstype
@@ -81,7 +79,6 @@ select_backup_partitions() {
     fstype=$(lsblk -fno fstype "$partition" | head -n1)
     if [[ -n "$fstype" && $fstype =~ ^($supported_fstypes)$ ]]; then
       if [[ -z $active && "$partition" == "$root" ]]; then
-        # Skip active partitions unless user specifically asks to include them
         show "Note: Skipping $partition (active root partition; use --include-active to back up)"
       else
         partitions+=("${partition#/dev/}")
@@ -94,7 +91,6 @@ select_backup_partitions() {
     exit 2
   fi
 
-  # Prompt the user
   for i in "${!partitions[@]}"; do
     read -p "Backup partition ${partitions[i]}? (y/N)" yn
     if [[ $yn == "y" || $yn == "Y" ]]; then
@@ -102,7 +98,6 @@ select_backup_partitions() {
     fi
   done
 
-  # Output the selections
   for i in "${!selected[@]}"; do
     echo "${selected[i]}"
   done
@@ -173,20 +168,8 @@ if [[ ! -b $sourcedisk ]]; then
   exit
 fi
 
-mount_device_at_path "$backupdevice" "$g_backuppath"
-
-# Get the active root partition
-root_part=$(findmnt -n -o SOURCE /)
-
-# Selected the partitions to backup
-readarray -t selected < <(select_backup_partitions "$sourcedisk" "$root_part" "$include_active")
-
-if [[ ${#selected[@]} -eq 0 ]]; then
-  printx "Error: No valid partitions selected"
-  exit
-fi
-
-archivename="$(date +%Y%m%d_%H%M%S)_$(hostname -s)"
+sourcehostname=$(hostname -s)
+archivename="$(date +%Y%m%d_%H%M%S)"
 
 # Initialize the log file
 g_logfile="/tmp/$(basename $0)_$archivename.log"
@@ -198,8 +181,21 @@ if [[ -n "$verbose" ]]; then
   tail_pid=$!
 fi
 
-# Create backup directory and save partition table
-archivepath="$g_backuppath/$g_backupdir/$archivename"
+mount_device_at_path "$backupdevice" "$g_backuppath"
+
+# Get the active root partition
+root_part=$(findmnt -n -o SOURCE /)
+
+# Select the partitions to backup
+readarray -t selected < <(select_backup_partitions "$sourcedisk" "$root_part" "$include_active")
+
+if [[ ${#selected[@]} -eq 0 ]]; then
+  printx "Error: No valid partitions selected"
+  exit
+fi
+
+# Create backup directory: fs/<hostname>/<archivename>
+archivepath="$g_backuppath/$g_backupdir/$sourcehostname/$archivename"
 mkdir -p "$archivepath"
 
 echo "Saving partition table to $archivepath/..."
@@ -210,12 +206,14 @@ for partition in "${selected[@]}"; do
   backup_filesystem "$partition" "$archivepath" "$sourcedisk"
 done
 
-# Create description in the snapshot directory
+# Write info.json
 if [[ -z $comment ]]; then
   comment="<no desc>"
 fi
-echo "($(sudo du -sh $archivepath | awk '{print $1}')) $comment" > "$archivepath/$g_descfile"
+source_uuid=$(blkid -s UUID -o value "$sourcedisk")
+machine_id=$(cat /etc/machine-id)
+json=$(jq -nc --arg comment "$comment" --arg device "$sourcedisk" --arg uuid "$source_uuid" --arg hostname "$sourcehostname" --arg machine_id "$machine_id" '{comment: $comment, device: $device, uuid: $uuid, hostname: $hostname, machine_id: $machine_id}')
+echo "$json" > "$archivepath/$g_infofile"
 
-echo "✅ Backup complete."
-# ls -lh "$archivepath"
+echo "✅ Backup complete: $archivepath"
 echo "Details of the operation can be viewed in the file $g_logfile"
