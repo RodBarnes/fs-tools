@@ -103,6 +103,38 @@ select_backup_partitions() {
   done
 }
 
+verify_available_space() {
+  local device=$1
+  local path=$2
+  local minspace=$3
+
+  local line
+  local dev
+  local size
+  local used
+  local avail
+  local pcent
+  local mount
+  local space
+  local yn
+
+  line=$(df "$path" -BG | sed -n '2p;')
+  IFS=' ' read dev size used avail pcent mount <<< $line
+  space=${avail%G}
+  if [[ $space -lt $minspace ]]; then
+    showx "The backup device '$device' has only $avail space left of the total $size."
+    read -p "Do you want to proceed? (y/N) " yn
+    if [[ $yn != "y" && $yn != "Y" ]]; then
+      show "Operation cancelled."
+      exit
+    else
+      echo "User acknowledged that backup device has less than ${minspace}GB space but proceeded." &>> "$g_logfile"
+    fi
+  else
+    echo "Backup device has $avail available; proceeding with backup." &>> "$g_logfile"
+  fi
+}
+
 cleanup() {
   unmount_device_at_path "$g_backuppath"
   [[ -n "$tail_pid" ]] && kill "$tail_pid" 2>/dev/null
@@ -181,7 +213,11 @@ if [[ -n "$verbose" ]]; then
   tail_pid=$!
 fi
 
+minimum_space=10 # Minimum required space in GB
+
 mount_device_at_path "$backupdevice" "$g_backuppath"
+
+verify_available_space "$backupdevice" "$g_backuppath" "$minimum_space"
 
 # Get the active root partition
 root_part=$(findmnt -n -o SOURCE /)
