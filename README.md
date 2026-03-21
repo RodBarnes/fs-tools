@@ -1,9 +1,9 @@
 # fs-tools
-A collection of `bash` scripts to create partition-level backups using fsarchiver.  These are sysadmin tools and should reside in `/usr/local/sbin`.
+A collection of `bash` scripts to create partition-level backups using fsarchiver.  These are written for bash on debian-based distros.  They may work as is or should be easily modified to work on other distros.
 
-This requires `fsarchiver` and `gdisk` be installed as well as expecting the `display` and `device` libraries (found in the [tools](https://github.com/RodBarnes/tools) repository) be in `/usr/local/lib`.
+They require `fsarchiver` and `gdisk` be installed as well as expecting the `display` and `device` libraries (found in the [tools](https://github.com/RodBarnes/tools) repository) be in `/usr/local/lib`.
 
-These are written for bash on debian-based distros.  They may work as is or should be easily modified to work on other distros.
+To install these tools on a server, run `bash ./fs-deploy.sh <hostname>`.  It will copy the files to the server and install them in `/usr/local/sbin` and `/usr/local/lib`.
 
 ## fs-backup.sh
 Usage: `sudo fs-backup <backup_device> <source_disk> [-a|--include-active] [-c|--comment "comment"] [-v|--verbose]`
