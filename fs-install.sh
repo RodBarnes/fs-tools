@@ -21,7 +21,7 @@ prog_files=(
 
 echo "Installing fs-tools..."
 
-sudo -v
+sudo -v || exit 1
 
 echo "Installing library files to $lib_dest..."
 for file in "${lib_files[@]}"; do
