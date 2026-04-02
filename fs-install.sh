@@ -10,6 +10,8 @@ remote_home=/home/rod
 
 lib_files=(
   fs-shared.sh
+  display.sh
+  device.sh
 )
 
 prog_files=(
@@ -22,6 +24,18 @@ prog_files=(
 echo "Installing fs-tools..."
 
 sudo -v || exit 1
+
+packages=(fsarchiver gdisk jq parted)
+missing=()
+for pkg in "${packages[@]}"; do
+  if ! dpkg -s "$pkg" &>/dev/null; then
+    missing+=("$pkg")
+  fi
+done
+if [[ ${#missing[@]} -gt 0 ]]; then
+  echo "Installing missing packages: ${missing[*]}"
+  sudo apt-get install -y "${missing[@]}" || { echo "Error: Package installation failed"; exit 1; }
+fi
 
 echo "Installing library files to $lib_dest..."
 for file in "${lib_files[@]}"; do
