@@ -4,6 +4,8 @@
 
 source /usr/local/lib/fs-shared.sh
 
+VERSION="20260404"
+
 show_syntax() {
   echo "Restore a backup created by fs-backup"
   echo "Syntax: $0 <backup_device> <target_disk> [-a|--archive archivename]"
@@ -11,6 +13,7 @@ show_syntax() {
   echo "        <target_disk> is the disk to which the restore should be applied."
   echo "        [-a|--archive archivename] is the name of the specific archive to restore."
   echo "        [-v|--verbose] will display the output log in process."
+  echo "        [-V|--version] will display the version."
   exit
 }
 
@@ -139,8 +142,8 @@ cleanup() {
 trap 'cleanup' EXIT
 
 # Get the arguments
-arg_short=va:
-arg_long=verbose,archive:
+arg_short=va:V
+arg_long=verbose,archive:,version
 arg_opts=$(getopt --options "$arg_short" --long "$arg_long" --name "$0" -- "$@")
 if [ $? != 0 ]; then
   show_syntax
@@ -150,6 +153,10 @@ fi
 eval set -- "$arg_opts"
 while true; do
   case "$1" in
+    -V|--version)
+      echo "$(basename $0) v$VERSION, fs-shared.sh v$FS_SHARED_VERSION"
+      exit 0
+      ;;
     -a|--archive)
       archivename="$2"
       shift 2

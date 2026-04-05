@@ -4,6 +4,8 @@
 
 source /usr/local/lib/fs-shared.sh
 
+VERSION="20260404"
+
 show_syntax() {
   echo "Create a backup of selected partitions using fsarchiver."
   echo "Syntax: $0 <backup_device> <source_disk> [-a|--include-active] [-c|--comment \"comment\"]"
@@ -12,6 +14,7 @@ show_syntax() {
   echo "        [-a|--include-active] is an option to force inclusion of partitions that are active; i.e., online."
   echo "        [-c|--comment \"comment\"] is a quote-bounded comment for the archive."
   echo "        [-v|--verbose] will display the output log in process."
+  echo "        [-V|--version] will display the version."
   exit
 }
 
@@ -147,8 +150,8 @@ cleanup() {
 trap 'cleanup' EXIT
 
 # Get the arguments
-arg_short=avc:
-arg_long=include-active,verbose,comment:
+arg_short=avcV
+arg_long=include-active,verbose,comment:,version
 arg_opts=$(getopt --options "$arg_short" --long "$arg_long" --name "$0" -- "$@")
 if [ $? != 0 ]; then
   show_syntax
@@ -158,6 +161,10 @@ fi
 eval set -- "$arg_opts"
 while true; do
   case "$1" in
+    -V|--version)
+      echo "$(basename $0) v$VERSION, fs-shared.sh v$FS_SHARED_VERSION"
+      exit 0
+      ;;
     -a|--include-active)
       include_active=true
       shift
