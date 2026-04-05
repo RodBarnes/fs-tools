@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+
+# Git pre-commit hook for fs-tools
+# Automatically updates VERSION in any staged script file, and
+# FS_SHARED_VERSION in fs-shared.sh, to today's date (YYYYMMDD).
+#
+# Install: cp fs-tools-pre-commit .git/hooks/pre-commit
+#          chmod +x .git/hooks/pre-commit
+
+today=$(date +%Y%m%d)
+
+files=(
+  fs-backup.sh
+  fs-delete.sh
+  fs-list.sh
+  fs-restore.sh
+)
+
+for file in "${files[@]}"; do
+  if git diff --cached --name-only | grep -q "^$file$"; then
+    sed -i "s/^VERSION=\"[0-9]\{8\}\"/VERSION=\"$today\"/" "$file"
+    git add "$file"
+  fi
+done
+
+if git diff --cached --name-only | grep -q "^fs-shared.sh$"; then
+  sed -i "s/^FS_SHARED_VERSION=\"[0-9]\{8\}\"/FS_SHARED_VERSION=\"$today\"/" fs-shared.sh
+  git add fs-shared.sh
+fi
