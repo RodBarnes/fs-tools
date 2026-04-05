@@ -1,4 +1,0 @@
-fs-list
-fs-delete
-fs-backup
-fs-restore
