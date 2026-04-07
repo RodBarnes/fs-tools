@@ -4,7 +4,7 @@
 
 source /usr/local/lib/fs-shared.sh
 
-VERSION="20260404"
+VERSION="20260406"
 
 show_syntax() {
   echo "Create a backup of selected partitions using fsarchiver."
@@ -150,7 +150,7 @@ cleanup() {
 trap 'cleanup' EXIT
 
 # Get the arguments
-arg_short=avcV
+arg_short=avc:V
 arg_long=include-active,verbose,comment:,version
 arg_opts=$(getopt --options "$arg_short" --long "$arg_long" --name "$0" -- "$@")
 if [ $? != 0 ]; then
