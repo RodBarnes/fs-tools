@@ -2,13 +2,10 @@
 ## General
 A collection of `bash` scripts to create partition-level backups using fsarchiver.  These are written for bash on debian-based distros.  They may work as is or should be easily modified to work on other distros.
 
-### Requirements
-They require `fsarchiver` and `gdisk` be installed as well as expecting the `display` and `device` libraries (found in the [tools](https://github.com/RodBarnes/tools) repository) be in `/usr/local/lib`.
-
 ### Installation
-To install these tools on a remote server, run `bash ./fs-deploy.sh <hostname>`.  It will copy the files to the server and install them in `/usr/local/sbin` and `/usr/local/lib`.
+To install these tools on a remote server, run `bash ./fs-deploy.sh <hostname>`.  It will copy the files to the server and install them in `/usr/local/sbin` and `/usr/local/lib`.  It will also install the required dependencies `fsarchiver` and `gdisk` and [display.sh](https://github.com/RodBarnes/tools/blob/main/display.sh) and [device.sh](https://github.com/RodBarnes/tools/blob/main/device.sh) libraries (found in the [tools](https://github.com/RodBarnes/tools) repository).
 
-To install on the local (development) system, run `bash ./fs-install.sh --local`.
+To install on the local system, run `bash ./fs-install.sh --local`.
 
 ### .git/hooks/pre-commit
 A Git pre-commit hook is included that automatically updates the `VERSION` variable in any staged script file (and `TS_SHARED_VERSION` in `ts-shared.sh`) to the current date (`YYYYMMDD`) at commit time.
