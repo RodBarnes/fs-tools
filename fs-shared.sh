@@ -10,6 +10,7 @@ FS_SHARED_VERSION="20260411"
 g_infofile=info.json
 g_backuppath=/mnt/backup
 g_backupdir="fs"
+g_archives=()
 
 verify_sudo() {
   if [[ "$EUID" != 0 ]]; then
@@ -28,25 +29,17 @@ show_device_space() {
     awk '{printf "Device %s: %s total, %s used, %s available (%s)\n", $1, $2, $3, $4, $5}'
 }
 
-select_archive() {
-  local device=$1
-  local path=$2
+collect_archives() {
+  local path=$1
 
-  local archives=()
-  local comment
   local systemname
-  local name
-  local count
-  local hostnamedir
   local archive
   local infopath
-  local sorted_archives=()
-  local entry
-  local labels=()
-  local selection
-  local idx
+  local comment
+  local hostnamedir
 
-  # Enumerate all system_name subdirectories, then archives within each
+  g_archives=()
+
   while IFS= read -r hostnamedir; do
     systemname="${hostnamedir##*/}"
     while IFS= read -r archive; do
@@ -56,23 +49,42 @@ select_archive() {
       else
         comment="<no desc>"
       fi
-      archives+=("$systemname/$archive|$systemname  $archive: $comment")
+      g_archives+=("$systemname|$archive|$comment")
     done < <( find "$hostnamedir" -mindepth 1 -maxdepth 1 -type d | xargs -I{} basename {} | sort )
   done < <( find "$path" -mindepth 1 -maxdepth 1 -type d | sort )
+}
 
-  if [ ${#archives[@]} -eq 0 ]; then
+select_archive() {
+  local device=$1
+  local path=$2
+
+  local sorted_archives=()
+  local labels=()
+  local entry
+  local systemname
+  local archive
+  local comment
+  local count
+  local selection
+  local idx
+  local name
+
+  collect_archives "$path"
+
+  if [ ${#g_archives[@]} -eq 0 ]; then
     showx "There are no backups on $device"
     return
   fi
 
-  # Sort entries by the display portion (system name first, then timestamp) and rebuild array
+  # Sort by system name then archive name
   while IFS= read -r entry; do
     sorted_archives+=("$entry")
-  done < <( printf '%s\n' "${archives[@]}" | sort -t'|' -k2 )
+  done < <( printf '%s\n' "${g_archives[@]}" | sort )
 
-  # Build display-only labels for select
+  # Build display labels
   for entry in "${sorted_archives[@]}"; do
-    labels+=("${entry##*|}")
+    IFS='|' read -r systemname archive comment <<< "$entry"
+    labels+=("$systemname  $archive: $comment")
   done
 
   show "Archive files..."
@@ -87,9 +99,9 @@ select_archive() {
         echo "Operation cancelled." >&2
         break
       else
-        # Map selected label back to its system_name/archive path token
         idx=$(( REPLY - 1 ))
-        name="${sorted_archives[$idx]%%|*}"
+        IFS='|' read -r systemname archive comment <<< "${sorted_archives[$idx]}"
+        name="$systemname/$archive"
         break
       fi
     else

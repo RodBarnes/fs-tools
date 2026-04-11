@@ -4,7 +4,7 @@
 
 source /usr/local/lib/fs-shared.sh
 
-VERSION="20260404"
+VERSION="20260411"
 
 show_syntax() {
   echo "List backups created by fs-backup"
@@ -18,30 +18,14 @@ list_archives() {
   local device=$1
   local path=$2
 
+  local entry
+  local systemname
+  local archive
   local comment
-  local hostname
-  local name
-  local i=0
-  local entries=()
-  local infopath
-  local hostnamedir
 
-  # Collect all entries as "hostname|archivename|comment" for sorting by hostname then name
-  while IFS= read -r hostnamedir; do
-    while IFS= read -r name; do
-      infopath="$hostnamedir/$name/$g_infofile"
-      if [ -f "$infopath" ]; then
-        hostname=$(jq -r '.hostname' "$infopath")
-        comment=$(jq -r '.comment' "$infopath")
-      else
-        hostname="unknown"
-        comment="<no desc>"
-      fi
-      entries+=("$hostname|$name|$comment")
-    done < <( find "$hostnamedir" -mindepth 1 -maxdepth 1 -type d | xargs -I{} basename {} | sort )
-  done < <( find "$path" -mindepth 1 -maxdepth 1 -type d | sort )
+  collect_archives "$path"
 
-  if [ ${#entries[@]} -eq 0 ]; then
+  if [ ${#g_archives[@]} -eq 0 ]; then
     showx "There are no backups on $device"
     return
   fi
@@ -50,11 +34,10 @@ list_archives() {
 
   show "Backup files:"
 
-  # Sort by hostname then archive name and display
-  while IFS='|' read -r hostname name comment; do
-    show "$hostname  $name: $comment"
-    ((i++))
-  done < <( printf '%s\n' "${entries[@]}" | sort )
+  while IFS= read -r entry; do
+    IFS='|' read -r systemname archive comment <<< "$entry"
+    show "$systemname  $archive: $comment"
+  done < <( printf '%s\n' "${g_archives[@]}" | sort )
 }
 
 cleanup() {
