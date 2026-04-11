@@ -4,13 +4,14 @@
 
 source /usr/local/lib/fs-shared.sh
 
-VERSION="20260406"
+VERSION="20260411"
 
 show_syntax() {
   echo "Create a backup of selected partitions using fsarchiver."
-  echo "Syntax: $0 <backup_device> <source_disk> [-a|--include-active] [-c|--comment \"comment\"]"
+  echo "Syntax: $0 <backup_device> <source_disk> [system_name] [-a|--include-active] [-c|--comment \"comment\"]"
   echo "Where:  <backup_device> can be a backupdevice designator (e.g., /dev/sdb6), a UUID, filesystem LABEL, or partition UUID"
   echo "        <source_disk> is the disk containing the partitions to be included in the backup."
+  echo "        [system_name] is the name to use for the backup subdirectory; prompted if not supplied."
   echo "        [-a|--include-active] is an option to force inclusion of partitions that are active; i.e., online."
   echo "        [-c|--comment \"comment\"] is a quote-bounded comment for the archive."
   echo "        [-v|--verbose] will display the output log in process."
@@ -191,6 +192,7 @@ done
 if [ $# -ge 2 ]; then
   backupdevice=$(get_device "$1")
   sourcedisk="$2"
+  systemname="$3"
 else
   show_syntax
 fi
@@ -207,7 +209,15 @@ if [[ ! -b $sourcedisk ]]; then
   exit
 fi
 
-sourcehostname=$(hostname -s)
+if [[ -z "$systemname" ]]; then
+  default_hostname=$(hostname -s)
+  read -rp "System name [${default_hostname}]: " systemname
+  if [[ -z "$systemname" ]]; then
+    systemname="$default_hostname"
+  fi
+fi
+sourcehostname="$systemname"
+
 archivename="$(date +%Y%m%d_%H%M%S)"
 
 # Initialize the log file
@@ -237,7 +247,7 @@ if [[ ${#selected[@]} -eq 0 ]]; then
   exit
 fi
 
-# Create backup directory: fs/<hostname>/<archivename>
+# Create backup directory: fs/<system_name>/<archivename>
 archivepath="$g_backuppath/$g_backupdir/$sourcehostname/$archivename"
 mkdir -p "$archivepath"
 
@@ -255,7 +265,7 @@ if [[ -z $comment ]]; then
 fi
 source_uuid=$(blkid -s UUID -o value "$sourcedisk")
 machine_id=$(cat /etc/machine-id)
-json=$(jq -nc --arg comment "$comment" --arg device "$sourcedisk" --arg uuid "$source_uuid" --arg hostname "$sourcehostname" --arg machine_id "$machine_id" '{comment: $comment, device: $device, uuid: $uuid, hostname: $hostname, machine_id: $machine_id}')
+json=$(jq -nc --arg comment "$comment" --arg device "$sourcedisk" --arg uuid "$source_uuid" --arg machine_id "$machine_id" '{comment: $comment, device: $device, uuid: $uuid, machine_id: $machine_id}')
 echo "$json" > "$archivepath/$g_infofile"
 
 echo "✅ Backup complete: $archivepath"

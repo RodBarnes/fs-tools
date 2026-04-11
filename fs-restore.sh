@@ -4,7 +4,7 @@
 
 source /usr/local/lib/fs-shared.sh
 
-VERSION="20260404"
+VERSION="20260411"
 
 show_syntax() {
   echo "Restore a backup created by fs-backup"
@@ -197,7 +197,7 @@ fi
 
 mount_device_at_path "$backupdevice" "$g_backuppath"
 
-# If an archive name was specified, find which hostname subdir contains it
+# If an archive name was specified, find which system_name subdir contains it
 if [ -n "$archivename" ]; then
   matched_subpath=$(find "$g_backuppath/$g_backupdir" -mindepth 2 -maxdepth 2 -type d -name "$archivename" | head -1)
   if [ -z "$matched_subpath" ]; then
@@ -210,7 +210,7 @@ fi
 
 # Since an archive was not specified, present a list for selection
 if [ -z "$archivename" ]; then
-  # select_archive returns "hostname/archivename"
+  # select_archive returns "system_name/archivename"
   archivesubpath=$(select_archive "$backupdevice" "$g_backuppath/$g_backupdir")
 fi
 
@@ -218,6 +218,7 @@ if [ -n "$archivesubpath" ]; then
 
   archivepath="$g_backuppath/$g_backupdir/$archivesubpath"
   archivename="${archivesubpath##*/}"
+  systemname="${archivesubpath%%/*}"
 
   # Initialize the log file
   g_logfile="/tmp/$(basename $0)_$archivename.log"
@@ -235,13 +236,12 @@ if [ -n "$archivesubpath" ]; then
     printx "Error: $infofile not found."
     exit 2
   fi
-  hostname=$(jq -r '.hostname' "$infofile")
 
   # Sanity check: warn if backup was made on a different machine
   backup_machine_id=$(jq -r '.machine_id' "$infofile")
   current_machine_id=$(cat /etc/machine-id)
   if [ "$backup_machine_id" != "$current_machine_id" ]; then
-    showx "WARNING: This backup was made on a different machine (hostname: $hostname)."
+    showx "WARNING: This backup was made on a different machine (system name: $systemname)."
     showx "Restoring it to this machine may produce an unbootable or misconfigured system."
     readx "Do you want to proceed anyway? (y/N)" yn
     if [[ $yn != "y" && $yn != "Y" ]]; then
@@ -250,7 +250,7 @@ if [ -n "$archivesubpath" ]; then
     fi
   fi
 
-  echo "Restoring '$hostname' $archivename to '$restoredevice'..."
+  echo "Restoring '$systemname' $archivename to '$restoredevice'..."
 
   # Check for partition table backup
   if [[ ! -f "$archivepath/pt-type" ]]; then

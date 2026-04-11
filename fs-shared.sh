@@ -5,7 +5,7 @@
 source /usr/local/lib/display.sh
 source /usr/local/lib/device.sh
 
-FS_SHARED_VERSION="20260404"
+FS_SHARED_VERSION="20260411"
 
 g_infofile=info.json
 g_backuppath=/mnt/backup
@@ -34,7 +34,7 @@ select_archive() {
 
   local archives=()
   local comment
-  local hostname
+  local systemname
   local name
   local count
   local hostnamedir
@@ -46,18 +46,17 @@ select_archive() {
   local selection
   local idx
 
-  # Enumerate all hostname subdirectories, then archives within each
+  # Enumerate all system_name subdirectories, then archives within each
   while IFS= read -r hostnamedir; do
+    systemname="${hostnamedir##*/}"
     while IFS= read -r archive; do
       infopath="$hostnamedir/$archive/$g_infofile"
       if [ -f "$infopath" ]; then
-        hostname=$(jq -r '.hostname' "$infopath")
         comment=$(jq -r '.comment' "$infopath")
       else
-        hostname="unknown"
         comment="<no desc>"
       fi
-      archives+=("${hostnamedir##*/}/$archive|$hostname  $archive: $comment")
+      archives+=("$systemname/$archive|$systemname  $archive: $comment")
     done < <( find "$hostnamedir" -mindepth 1 -maxdepth 1 -type d | xargs -I{} basename {} | sort )
   done < <( find "$path" -mindepth 1 -maxdepth 1 -type d | sort )
 
@@ -66,7 +65,7 @@ select_archive() {
     return
   fi
 
-  # Sort entries by the display portion (hostname first, then timestamp) and rebuild array
+  # Sort entries by the display portion (system name first, then timestamp) and rebuild array
   while IFS= read -r entry; do
     sorted_archives+=("$entry")
   done < <( printf '%s\n' "${archives[@]}" | sort -t'|' -k2 )
@@ -88,7 +87,7 @@ select_archive() {
         echo "Operation cancelled." >&2
         break
       else
-        # Map selected label back to its hostname/archive path token
+        # Map selected label back to its system_name/archive path token
         idx=$(( REPLY - 1 ))
         name="${sorted_archives[$idx]%%|*}"
         break
@@ -98,6 +97,6 @@ select_archive() {
     fi
   done
 
-  # name is "hostname/archivename"
+  # name is "system_name/archivename"
   echo "$name"
 }
