@@ -5,7 +5,7 @@
 source /usr/local/lib/display.sh
 source /usr/local/lib/device.sh
 
-VERSION="20260416"
+VERSION="20260425"
 
 g_infofile=info.json
 g_backuppath=/mnt/backup
@@ -29,6 +29,45 @@ show_device_space() {
     awk '{printf "Device %s: %s total, %s used, %s available (%s)\n", $1, $2, $3, $4, $5}'
 }
 
+# Print a single formatted archive line to stderr.
+# With prefix="": fs-list style   — name  archivename  description
+# With prefix="N) ": fs-restore/delete style — N)  name  archivename  description
+# Column widths: name=8, archivename=15 (YYYYMMDD_HHMMSS), description fills to COLUMNS.
+format_archive_line() {
+  local key=$1
+  local comment=$2
+  local prefix=$3
+
+  local sysname
+  local archive
+  local desc_width
+  local truncated
+
+  sysname="${key%/*}"
+  archive="${key##*/}"
+
+  if [ -n "$prefix" ]; then
+    # 4 (num field) + 8 (name) + 2 (gap) + 15 (archive) + 2 (gap) = 31
+    desc_width=$(( COLUMNS - 31 ))
+  else
+    # 8 (name) + 2 (gap) + 15 (archive) + 2 (gap) = 27
+    desc_width=$(( COLUMNS - 27 ))
+  fi
+
+  if [ "$desc_width" -lt 10 ]; then
+    desc_width=10
+  fi
+
+  if [ "${#comment}" -gt "$desc_width" ]; then
+    truncated="${comment:0:$(( desc_width - 3 ))}..."
+  else
+    truncated="$comment"
+  fi
+
+  printf "%s${WHITE}%-8s${NOCOLOR}  ${LTCYAN}%s${NOCOLOR}  ${YELLOW}%s${NOCOLOR}\n" \
+    "$prefix" "$sysname" "$archive" "$truncated" >&2
+}
+
 collect_archives() {
   local path=$1
 
@@ -49,7 +88,7 @@ collect_archives() {
       else
         comment="<no desc>"
       fi
-      g_archives+=("$systemname|$archive|$comment")
+      g_archives+=("$systemname/$archive|$comment")
     done < <( find "$hostnamedir" -mindepth 1 -maxdepth 1 -type d | xargs -I{} basename {} | sort )
   done < <( find "$path" -mindepth 1 -maxdepth 1 -type d | sort )
 }
@@ -58,16 +97,15 @@ select_archive() {
   local device=$1
   local path=$2
 
-  local sorted_archives=()
-  local labels=()
   local entry
-  local systemname
-  local archive
+  local key
   local comment
   local count
-  local selection
+  local cancel
   local idx
+  local reply
   local name
+  local sorted=()
 
   collect_archives "$path"
 
@@ -76,39 +114,45 @@ select_archive() {
     return
   fi
 
-  # Sort by system name then archive name
+  # Sort g_archives by key (systemname/archive)
   while IFS= read -r entry; do
-    sorted_archives+=("$entry")
-  done < <( printf '%s\n' "${g_archives[@]}" | sort )
+    sorted+=("$entry")
+  done < <( printf '%s\n' "${g_archives[@]}" | sort -k1 )
+  g_archives=("${sorted[@]}")
 
-  # Build display labels
-  for entry in "${sorted_archives[@]}"; do
-    IFS='|' read -r systemname archive comment <<< "$entry"
-    labels+=("$systemname  $archive: $comment")
+  show ""
+
+  count="${#g_archives[@]}"
+  cancel=$(( count + 1 ))
+
+  idx=0
+  for entry in "${g_archives[@]}"; do
+    key="${entry%%|*}"
+    comment="${entry##*|}"
+    idx=$(( idx + 1 ))
+    format_archive_line "$key" "$comment" "$(printf '%2d)  ' $idx)"
   done
 
-  show "Archive files..."
+  printf "%2d)  Cancel\n" "$cancel" >&2
+  show ""
 
-  count="${#labels[@]}"
-  ((count++))
-
-  COLUMNS=1
-  select selection in "${labels[@]}" "Cancel"; do
-    if [[ "$REPLY" =~ ^[0-9]+$ && "$REPLY" -ge 1 && "$REPLY" -le $count ]]; then
-      if [[ "$selection" == "Cancel" ]]; then
-        echo "Operation cancelled." >&2
+  while true; do
+    printf "${YELLOW}Select [1-$cancel]:${NOCOLOR} " >&2
+    read -r reply
+    if [[ "$reply" =~ ^[0-9]+$ && "$reply" -ge 1 && "$reply" -le "$cancel" ]]; then
+      if [ "$reply" -eq "$cancel" ]; then
+        show "Operation cancelled."
+        name=""
         break
       else
-        idx=$(( REPLY - 1 ))
-        IFS='|' read -r systemname archive comment <<< "${sorted_archives[$idx]}"
-        name="$systemname/$archive"
+        name="${g_archives[$(( reply - 1 ))]%%|*}"
         break
       fi
     else
-      showx "Invalid selection. Please enter a number between 1 and $count."
+      showx "Invalid selection. Please enter a number between 1 and $cancel."
     fi
   done
 
-  # name is "system_name/archivename"
+  # name is "systemname/archivename"
   echo "$name"
 }

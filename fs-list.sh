@@ -4,7 +4,7 @@
 
 source /usr/local/lib/fs-shared.sh
 
-VERSION="20260411"
+VERSION="20260425"
 
 show_syntax() {
   echo "List backups created by fs-backup"
@@ -19,25 +19,25 @@ list_archives() {
   local path=$2
 
   local entry
-  local systemname
-  local archive
+  local key
   local comment
 
   collect_archives "$path"
+
+  show_device_space "$device"
 
   if [ ${#g_archives[@]} -eq 0 ]; then
     showx "There are no backups on $device"
     return
   fi
 
-  show_device_space "$device"
+  show ""
 
-  show "Backup files:"
-
-  while IFS= read -r entry; do
-    IFS='|' read -r systemname archive comment <<< "$entry"
-    show "$systemname  $archive: $comment"
-  done < <( printf '%s\n' "${g_archives[@]}" | sort )
+  for entry in "${g_archives[@]}"; do
+    key="${entry%%|*}"
+    comment="${entry##*|}"
+    format_archive_line "$key" "$comment" ""
+  done
 }
 
 cleanup() {

@@ -4,7 +4,7 @@
 
 source /usr/local/lib/fs-shared.sh
 
-VERSION="20260411"
+VERSION="20260425"
 
 show_syntax() {
   echo "Restore a backup created by fs-backup"
@@ -196,6 +196,8 @@ if [[ ! -b $restoredevice ]]; then
 fi
 
 mount_device_at_path "$backupdevice" "$g_backuppath"
+
+show_device_space "$backupdevice"
 
 # If an archive name was specified, find which system_name subdir contains it
 if [ -n "$archivename" ]; then
