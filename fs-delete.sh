@@ -3,8 +3,9 @@
 # Delete one or more fs-backups
 
 source /usr/local/lib/fs-shared.sh
+LIB_VERSION="$VERSION"
 
-VERSION="20260404"
+VERSION="20260425"
 
 show_syntax() {
   echo "Delete a backup created by fs-backup"
@@ -44,7 +45,7 @@ trap 'cleanup' EXIT
 
 # Get the arguments
 if [[ "$1" == "-V" || "$1" == "--version" ]]; then
-  echo "$(basename $0) v$VERSION, fs-shared.sh v$FS_SHARED_VERSION"
+  echo "$(basename $0) v$VERSION, fs-shared.sh v$LIB_VERSION"
   exit 0
 elif [ $# -ge 1 ]; then
   backupdevice=$(get_device "$1")

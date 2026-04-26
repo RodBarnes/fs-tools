@@ -3,6 +3,7 @@
 # Restore an fs-backup
 
 source /usr/local/lib/fs-shared.sh
+LIB_VERSION="$VERSION"
 
 VERSION="20260425"
 
@@ -154,7 +155,7 @@ eval set -- "$arg_opts"
 while true; do
   case "$1" in
     -V|--version)
-      echo "$(basename $0) v$VERSION, fs-shared.sh v$FS_SHARED_VERSION"
+      echo "$(basename $0) v$VERSION, fs-shared.sh v$LIB_VERSION"
       exit 0
       ;;
     -a|--archive)

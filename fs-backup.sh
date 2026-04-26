@@ -3,8 +3,9 @@
 # Create a backup of one or more partitions from a drive using fsarchiver
 
 source /usr/local/lib/fs-shared.sh
+LIB_VERSION="$VERSION"
 
-VERSION="20260411"
+VERSION="20260425"
 
 show_syntax() {
   echo "Create a backup of selected partitions using fsarchiver."
@@ -163,7 +164,7 @@ eval set -- "$arg_opts"
 while true; do
   case "$1" in
     -V|--version)
-      echo "$(basename $0) v$VERSION, fs-shared.sh v$FS_SHARED_VERSION"
+      echo "$(basename $0) v$VERSION, fs-shared.sh v$LIB_VERSION"
       exit 0
       ;;
     -a|--include-active)
