@@ -5,7 +5,7 @@
 source /usr/local/lib/fs-shared.sh
 LIB_VERSION="$VERSION"
 
-VERSION="20260425"
+VERSION="20260505"
 
 show_syntax() {
   echo "Create a backup of selected partitions using fsarchiver."
@@ -89,7 +89,7 @@ select_backup_partitions() {
         partitions+=("${partition#/dev/}")
       fi
     fi
-  done < <(sfdisk --list "$disk" | awk '/^\/dev\// && $1 ~ /'"${disk##*/}"'[0-9]/ {print $1}' | sort)
+  done < <(lsblk -lno NAME,TYPE "$disk" | awk '$2 == "part" {print "/dev/" $1}' | sort)
 
   if [[ ${#partitions[@]} -eq 0 ]]; then
     showx "No supported filesystems found on $disk"
